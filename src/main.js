@@ -1344,8 +1344,13 @@ class Game {
         if (damageEl) damageEl.innerText = `৳ ${toBengaliNumber(this.nationalDamage.toLocaleString('en-US'))}`;
         if (battEl) battEl.innerText = `${toBengaliNumber(Math.round(this.player.battery))}%`;
         const pZ = this.player.group.position.z;
-        const vipDist = Math.max(0, Math.round(Math.abs(pZ - this.traffic.vipZ)));
-        if (vipEl) vipEl.innerText = `${toBengaliNumber(vipDist)} মি`;
+        let vipDistStr = 'স্ক্যান হচ্ছে...';
+        if (this.traffic && this.traffic.vipCar && this.traffic.vipCar.group) {
+          const vZ = this.traffic.vipCar.group.position.z;
+          const dist = Math.max(0, Math.round(Math.abs(pZ - vZ)));
+          vipDistStr = `${toBengaliNumber(dist)} মি`;
+        }
+        if (vipEl) vipEl.innerText = vipDistStr;
         const mapData = this.map ? this.map.update(pZ) : null;
         if (stnEl && mapData?.currentStation) stnEl.innerText = mapData.currentStation.name;
 
