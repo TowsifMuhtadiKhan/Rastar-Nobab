@@ -530,19 +530,9 @@ export class RickshawTesla {
     this.group.add(this.hornGroup);
 
     // -------------------------------------------------------------
-    // 10. Neon Underglow
+    // 10. Fast & Furious Nitro Exhaust Flames & Fire System
     // -------------------------------------------------------------
-    const underglowGeo = new THREE.PlaneGeometry(1.6, 2.6);
-    this.underglowMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffcc,
-      transparent: true,
-      opacity: 0.45,
-      side: THREE.DoubleSide
-    });
-    this.underglow = new THREE.Mesh(underglowGeo, this.underglowMat);
-    this.underglow.rotation.x = Math.PI / 2;
-    this.underglow.position.y = 0.06;
-    this.group.add(this.underglow);
+    this.initFuriousFire();
 
     // -------------------------------------------------------------
     // 11. Driver Character & Fairy Lights
@@ -590,6 +580,129 @@ export class RickshawTesla {
   }
 
   // Driver Figure in White Panjabi & Red Collar seated on the driver bench
+  // Fast & Furious Dual Nitro Exhaust Flames & Roaring Fire System
+  initFuriousFire() {
+    this.fireGroup = new THREE.Group();
+
+    // 1. Dual Chrome Heavy-Duty Exhaust Pipes at rear undercarriage
+    const pipeMat = new THREE.MeshStandardMaterial({
+      color: 0x1f2937,
+      metalness: 0.95,
+      roughness: 0.15
+    });
+    const tipMat = new THREE.MeshStandardMaterial({
+      color: 0x4f46e5, // Anodized burnt titanium blue tip
+      metalness: 0.9,
+      roughness: 0.2
+    });
+
+    const pipePositions = [-0.42, 0.42];
+    this.flameJets = [];
+
+    pipePositions.forEach((px) => {
+      // Exhaust Pipe Cylinder
+      const pipeGeo = new THREE.CylinderGeometry(0.09, 0.11, 0.45, 16);
+      const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+      pipe.rotation.x = Math.PI / 2;
+      pipe.position.set(px, 0.26, 1.25);
+      this.fireGroup.add(pipe);
+
+      // Burnt Titanium Tip
+      const tipGeo = new THREE.CylinderGeometry(0.10, 0.115, 0.12, 16);
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.rotation.x = Math.PI / 2;
+      tip.position.set(px, 0.26, 1.48);
+      this.fireGroup.add(tip);
+
+      // Flame Jet Container (Points directly backward along +Z)
+      const jetGroup = new THREE.Group();
+      jetGroup.position.set(px, 0.26, 1.55);
+
+      // Outer Roaring Fiery Orange/Red Flame
+      const outerGeo = new THREE.ConeGeometry(0.22, 1.4, 16);
+      outerGeo.translate(0, 0.7, 0); // Origin at base of cone
+      const outerMat = new THREE.MeshBasicMaterial({
+        color: 0xff3700,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const outerFlame = new THREE.Mesh(outerGeo, outerMat);
+      outerFlame.rotation.x = Math.PI / 2;
+      jetGroup.add(outerFlame);
+
+      // Inner Fast & Furious Electric Cyan/Blue Nitrous Core
+      const innerGeo = new THREE.ConeGeometry(0.12, 0.85, 16);
+      innerGeo.translate(0, 0.42, 0);
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const innerFlame = new THREE.Mesh(innerGeo, innerMat);
+      innerFlame.rotation.x = Math.PI / 2;
+      jetGroup.add(innerFlame);
+
+      // White-Hot High-Temperature Core Tip
+      const coreGeo = new THREE.ConeGeometry(0.06, 0.45, 12);
+      coreGeo.translate(0, 0.22, 0);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const coreFlame = new THREE.Mesh(coreGeo, coreMat);
+      coreFlame.rotation.x = Math.PI / 2;
+      jetGroup.add(coreFlame);
+
+      this.fireGroup.add(jetGroup);
+      this.flameJets.push({
+        jetGroup,
+        outerFlame,
+        innerFlame,
+        coreFlame,
+        baseX: px
+      });
+    });
+
+    // 2. Dynamic Fire Illumination (Flickering PointLight on Asphalt)
+    this.fireLight = new THREE.PointLight(0xff4400, 2.5, 7.5);
+    this.fireLight.position.set(0, 0.35, 1.8);
+    this.fireGroup.add(this.fireLight);
+
+    // 3. Trailing Fire Ember / Spark Particles
+    this.fireSparks = [];
+    const sparkGeo = new THREE.SphereGeometry(0.045, 6, 6);
+    const sparkMat = new THREE.MeshBasicMaterial({
+      color: 0xffaa00,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    for (let i = 0; i < 20; i++) {
+      const spark = new THREE.Mesh(sparkGeo, sparkMat.clone());
+      spark.visible = false;
+      this.fireGroup.add(spark);
+      this.fireSparks.push({
+        mesh: spark,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        life: 0,
+        maxLife: 0.35
+      });
+    }
+
+    this.group.add(this.fireGroup);
+  }
+
   initDriver() {
     this.driverGroup = new THREE.Group();
     // Positioned seated naturally on driver seat bench
@@ -706,18 +819,14 @@ export class RickshawTesla {
   applyVisualUpgrade() {
     if (this.upgradeLevel === 2) {
       this.maxSpeed = 75;
-      this.underglowMat.color.setHex(0x00f0ff);
       if (this.roofSlab) this.roofSlab.scale.set(1.05, 1.05, 1.05);
     } else if (this.upgradeLevel === 3) {
       this.maxSpeed = 90;
-      this.underglowMat.color.setHex(0xff0055);
-      this.underglowMat.opacity = 0.85;
       const extraHorn = this.hornGroup.clone();
       extraHorn.position.y += 0.22;
       this.group.add(extraHorn);
     } else if (this.upgradeLevel >= 4) {
       this.maxSpeed = 110;
-      this.underglowMat.color.setHex(0xffd700);
     }
   }
 
@@ -812,6 +921,113 @@ export class RickshawTesla {
     } else {
       for (let i = 0; i < this.fairyLights.length; i++) {
         this.fairyLights[i].mesh.visible = i % 2 === 0;
+      }
+    }
+
+    // Animate Fast & Furious Nitro Exhaust Flames & Fire System
+    const isBoosting = !!input.boost;
+    const isDriving = input.forward && this.speed > 3;
+    const isHighSpeed = Math.abs(this.speed) > 30;
+
+    if (this.flameJets && this.flameJets.length > 0) {
+      const time = Date.now() * 0.04;
+      let targetScaleZ = 0;
+      let targetScaleXY = 0;
+      let lightIntensity = 0;
+
+      if (isBoosting) {
+        // MAXIMUM FAST & FURIOUS NITRO OVERDRIVE!
+        targetScaleZ = 2.4 + Math.sin(time) * 0.5 + Math.random() * 0.4;
+        targetScaleXY = 1.35 + Math.sin(time * 1.5) * 0.2;
+        lightIntensity = 5.5 + Math.random() * 2.0;
+        this.fireLight.color.setHex(0x00f0ff); // Blazing cyan-blue nitro glow
+      } else if (isDriving || isHighSpeed) {
+        // Furious street racing exhaust flames
+        const speedFactor = Math.min(1.0, Math.abs(this.speed) / this.maxSpeed);
+        targetScaleZ = 0.9 + speedFactor * 0.8 + Math.sin(time) * 0.3;
+        targetScaleXY = 0.9 + speedFactor * 0.3;
+        lightIntensity = 2.2 + Math.random() * 1.4;
+        this.fireLight.color.setHex(0xff5500); // Raging orange fire glow
+      } else if (this.speed > 0.5) {
+        // Idle gentle pilot flame lick
+        targetScaleZ = 0.35 + Math.sin(time * 0.8) * 0.15;
+        targetScaleXY = 0.6;
+        lightIntensity = 0.8 + Math.random() * 0.4;
+        this.fireLight.color.setHex(0xff7700);
+      } else {
+        targetScaleZ = 0;
+        targetScaleXY = 0;
+        lightIntensity = 0;
+      }
+
+      this.fireLight.intensity = lightIntensity;
+
+      for (let f = 0; f < this.flameJets.length; f++) {
+        const jet = this.flameJets[f];
+        if (targetScaleZ <= 0.05) {
+          jet.jetGroup.visible = false;
+        } else {
+          jet.jetGroup.visible = true;
+          // Random flame jitter for realistic turbulence
+          const jitterX = (Math.random() - 0.5) * 0.04;
+          const jitterY = (Math.random() - 0.5) * 0.04;
+          jet.jetGroup.position.x = jet.baseX + jitterX;
+          jet.jetGroup.position.y = 0.26 + jitterY;
+
+          // Scale flame
+          jet.jetGroup.scale.set(targetScaleXY, targetScaleXY, targetScaleZ);
+
+          // In boost mode, intensify blue core and glow
+          if (isBoosting) {
+            jet.innerFlame.material.color.setHex(0x00ffff);
+            jet.innerFlame.scale.set(1.4, 1.4, 1.3);
+            jet.outerFlame.material.color.setHex(0x3b82f6);
+          } else {
+            jet.innerFlame.material.color.setHex(0x00f0ff);
+            jet.innerFlame.scale.set(1.0, 1.0, 1.0);
+            jet.outerFlame.material.color.setHex(0xff3700);
+          }
+        }
+      }
+
+      // Spawn and animate fire sparks / embers shooting backwards
+      if (isBoosting || isDriving) {
+        for (const spark of this.fireSparks) {
+          if (!spark.mesh.visible && Math.random() > 0.45) {
+            const side = Math.random() > 0.5 ? -0.42 : 0.42;
+            spark.mesh.position.set(
+              side + (Math.random() - 0.5) * 0.1,
+              0.26 + (Math.random() - 0.5) * 0.1,
+              1.55
+            );
+            spark.vx = (Math.random() - 0.5) * (isBoosting ? 3.0 : 1.5);
+            spark.vy = Math.random() * (isBoosting ? 2.5 : 1.2) - 0.3;
+            spark.vz = (isBoosting ? 8.0 : 4.5) + Math.random() * 3.0; // shoot backwards
+            spark.life = 0;
+            spark.maxLife = 0.25 + Math.random() * 0.18;
+            spark.mesh.material.color.setHex(isBoosting ? (Math.random() > 0.4 ? 0x00f0ff : 0xffaa00) : 0xff7700);
+            spark.mesh.material.opacity = 1.0;
+            spark.mesh.visible = true;
+          }
+        }
+      }
+
+      // Update active sparks
+      for (const spark of this.fireSparks) {
+        if (spark.mesh.visible) {
+          spark.life += delta;
+          if (spark.life >= spark.maxLife) {
+            spark.mesh.visible = false;
+          } else {
+            spark.mesh.position.x += spark.vx * delta;
+            spark.mesh.position.y += spark.vy * delta;
+            spark.mesh.position.z += spark.vz * delta;
+            const progress = spark.life / spark.maxLife;
+            spark.mesh.material.opacity = 1.0 - progress;
+            const s = Math.max(0.1, 1.0 - progress * 0.8);
+            spark.mesh.scale.set(s, s, s);
+          }
+        }
       }
     }
   }
