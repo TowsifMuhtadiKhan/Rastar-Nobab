@@ -8,13 +8,13 @@ export class RickshawTesla {
 
     // Vehicle physics state
     this.speed = 0;
-    this.maxSpeed = 60; // km/h
-    this.boostMaxSpeed = 100;
-    this.acceleration = 34;
-    this.braking = 52;
-    this.friction = 14;
+    this.maxSpeed = 36; // km/h (authentic easybike cruising speed)
+    this.boostMaxSpeed = 52;
+    this.acceleration = 18;
+    this.braking = 32;
+    this.friction = 12;
     this.steerAngle = 0;
-    this.maxSteerAngle = 0.68;
+    this.maxSteerAngle = 0.52;
     this.steerSpeed = 3.2;
     this.tilt = 0;
     this.baseHeading = 0; // 0 = forward down highway (-Z), Math.PI = backward (+Z)
@@ -836,15 +836,15 @@ export class RickshawTesla {
 
   applyVisualUpgrade() {
     if (this.upgradeLevel === 2) {
-      this.maxSpeed = 75;
+      this.maxSpeed = 42;
       if (this.roofSlab) this.roofSlab.scale.set(1.05, 1.05, 1.05);
     } else if (this.upgradeLevel === 3) {
-      this.maxSpeed = 90;
+      this.maxSpeed = 48;
       const extraHorn = this.hornGroup.clone();
       extraHorn.position.y += 0.22;
       this.group.add(extraHorn);
     } else if (this.upgradeLevel >= 4) {
-      this.maxSpeed = 110;
+      this.maxSpeed = 54;
     }
   }
 
@@ -862,8 +862,7 @@ export class RickshawTesla {
 
   activateTurboBoost(duration = 2.8) {
     this.boostTimer = duration;
-    // Instant rocket impulse! Immediate surge into high speed
-    this.speed = Math.max(this.speed + 22, 65);
+    this.speed = Math.max(this.speed + 12, 44);
     if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
   }
 
@@ -875,7 +874,7 @@ export class RickshawTesla {
     this.uTurnDirection = direction === 'left' ? -1 : 1;
     this.uTurnStartHeading = this.baseHeading;
     this.uTurnTargetHeading = (Math.abs(this.baseHeading) < 0.5) ? Math.PI : 0;
-    this.speed = Math.max(32, Math.min(65, Math.abs(this.speed)));
+    this.speed = Math.max(20, Math.min(36, Math.abs(this.speed)));
     if (this.onTurnStart) {
       this.onTurnStart('uturn', { left: 'ইউ-টার্ন', right: 'ইউ-টার্ন' });
     }
@@ -888,26 +887,26 @@ export class RickshawTesla {
     }
     const isBoosting = !!input.boost || (this.boostTimer > 0);
 
-    const cruiseTarget = this.autoCruiseEnabled ? 32 : 0;
+    const cruiseTarget = this.autoCruiseEnabled ? 24 : 0;
     if (isBoosting) {
       // TURBO NITRO OVERDRIVE: Rocket boost propulsion up to boostMaxSpeed!
-      this.speed += this.acceleration * 3.2 * delta;
+      this.speed += this.acceleration * 2.2 * delta;
       if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
-      this.battery = Math.max(0, this.battery - 0.06);
+      this.battery = Math.max(0, this.battery - 0.05);
     } else if (input.forward) {
       this.speed += this.acceleration * delta;
       if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
       this.battery = Math.max(0, this.battery - 0.02);
     } else if (input.backward) {
       this.speed -= this.braking * delta;
-      if (this.speed < -16) this.speed = -16;
+      if (this.speed < -12) this.speed = -12;
     } else {
       if (this.autoCruiseEnabled) {
         if (this.speed < cruiseTarget) {
-          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.9 * delta);
+          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.8 * delta);
         } else if (this.speed > this.maxSpeed) {
           // Smooth aerodynamic deceleration from turbo
-          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.4 * delta);
+          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.5 * delta);
         }
       } else {
         if (this.speed > 0) {
@@ -932,8 +931,8 @@ export class RickshawTesla {
       // Handlebar locked at countersteer
       this.forkGroup.rotation.y = -this.uTurnDirection * this.maxSteerAngle * 1.5;
       
-      // Dramatic power-slide lateral displacement across the road
-      this.group.position.x += this.uTurnDirection * 15.0 * Math.sin(smoothProgress * Math.PI) * delta;
+      // Controlled power-slide lateral displacement across the road
+      this.group.position.x += this.uTurnDirection * 9.5 * Math.sin(smoothProgress * Math.PI) * delta;
       
       // Maintain forward momentum during the drift arc
       const driftSpeed = (this.speed / 3.6) * delta;
@@ -956,8 +955,8 @@ export class RickshawTesla {
       if (input.left) targetSteer -= this.maxSteerAngle;
       if (input.right) targetSteer += this.maxSteerAngle;
 
-      // Snappy, agile steering interpolation
-      this.steerAngle += (targetSteer - this.steerAngle) * 14.0 * delta;
+      // Silky smooth, progressive steering interpolation (gentle, natural and controlled)
+      this.steerAngle += (targetSteer - this.steerAngle) * 6.5 * delta;
 
       // Direction multiplier along Z and X based on road heading (0 vs PI)
       const forwardDirZ = (Math.cos(this.baseHeading) > 0) ? -1 : 1;
@@ -965,30 +964,29 @@ export class RickshawTesla {
 
       const steerFactor = this.steerAngle / this.maxSteerAngle;
       const speedMag = Math.abs(this.speed);
-      const speedFactor = Math.max(0.40, Math.min(1.25, speedMag / 28.0));
+      const speedFactor = Math.max(0.35, Math.min(1.15, speedMag / 24.0));
 
-      // Fast, nimble lateral lane movement (weaving between traffic)
-      const lateralSpeed = 16.5; // m/s
+      // Smooth, natural lateral lane movement (reduced from 16.5 to 8.2 for perfectly controlled dodging)
+      const lateralSpeed = 8.2; // m/s
       this.group.position.x += steerDirX * steerFactor * lateralSpeed * speedFactor * delta;
 
       // Forward travel along road
       const forwardMove = (this.speed / 3.6) * delta;
       this.group.position.z += forwardDirZ * forwardMove;
 
-      // Authentic 3-wheeler body slip yaw:
-      // While changing lanes, vehicle nose dynamically points slightly into the turn (up to ~16°),
+      // Gentle authentic 3-wheeler body slip yaw:
+      // While changing lanes, vehicle nose smoothly points slightly into the turn (~7° max),
       // and immediately straightens out when steering is released!
-      const targetBodyYaw = steerDirX * (-steerFactor * 0.28);
+      const targetBodyYaw = steerDirX * (-steerFactor * 0.12);
       this.heading = this.baseHeading + targetBodyYaw;
 
-      // Authentic Bangladeshi 3-Wheeler Body Roll & Dynamic Canopy Lean
-      // High center-of-gravity 3-wheeler suspension banking into corners
-      const speedRatio = Math.min(1.3, speedMag / 36.0);
-      const targetTilt = -steerFactor * (0.24 + speedRatio * 0.14);
-      this.tilt += (targetTilt - this.tilt) * 14.0 * delta;
+      // Gentle Bangladeshi 3-Wheeler Body Roll & Suspension Lean (smooth, subtle, and realistic)
+      const speedRatio = Math.min(1.0, speedMag / 30.0);
+      const targetTilt = -steerFactor * (0.09 + speedRatio * 0.06);
+      this.tilt += (targetTilt - this.tilt) * 8.0 * delta;
 
       // Front Wheel & Handlebar turn angle (turns with driver steering)
-      this.forkGroup.rotation.y = -this.steerAngle * 1.4;
+      this.forkGroup.rotation.y = -this.steerAngle * 1.1;
     }
 
     // Acceleration Squat & Braking Nose-Dive on Front Shocks
