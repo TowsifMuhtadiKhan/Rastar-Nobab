@@ -398,7 +398,7 @@ export class Road {
 
     // 8. Overhead Highway Directional Gantry Signboard (Spanning highway entrance at z = 15.5)
     const gantry = this.createChourastaGantry(stationData);
-    gantry.position.set(0, 0, 15.5);
+    gantry.group.position.set(0, 0, 15.5);
     group.add(gantry.group);
     group.userData.gantrySignMesh = gantry.signMesh;
 

@@ -49,7 +49,8 @@ class Game {
       this.initInput();
       this.initUI();
     } catch (e) {
-      console.error('Initialization warning:', e);
+      console.error('Fatal initialization error:', e);
+      return;
     }
 
     window.addEventListener('resize', () => this.onResize());
@@ -1355,6 +1356,8 @@ class Game {
   animate() {
     requestAnimationFrame(() => this.animate());
     const delta = Math.min(this.clock.getDelta(), 0.08);
+
+    if (!this.player || !this.player.group) return;
 
     if (this.isRunning && !this.isPaused) {
       const activeChourastas = this.road.getActiveChourastas();
