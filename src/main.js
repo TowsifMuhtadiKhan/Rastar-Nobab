@@ -824,7 +824,6 @@ class Game {
         this.sound.playCrashSound(1.4);
         this.sound.playDhapashSound();
         this.sound.playPoliceWhistle();
-        this.sound.playKiRagKorlaMusic();
         this.screenShake = 0.65;
         this.effects.createCrashSparks(pPos.x, 0.9, pPos.z, 28);
 
@@ -914,16 +913,15 @@ class Game {
       if (car.isVIP) {
         this.sound.playCrashSound(1.5);
         this.sound.playDhapashSound();
-        this.sound.playKiRagKorlaMusic();
         this.screenShake = 0.75;
         this.effects.createCrashSparks(pBounds.x, 1.2, pBounds.z, 30);
         this.nationalDamage += 50000;
         this.takaCollected += 5000;
 
         this.sound.playTurboSound();
-        const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'চুরমার!';
+        const starWord = 'চুরমার!';
         const gali = this.effects.createDhapashImpact(
-          car.group.position.x, 1.4, car.group.position.z, this.camera, starWord, 'ভিআইপি প্রটোকল শেষ! কী রাগ করলা?!', 5000
+          car.group.position.x, 1.4, car.group.position.z, this.camera, starWord, 'ভিআইপি প্রটোকল শেষ! সাইড দেন নবাব!', 5000
         );
         this.sound.speakGali(gali);
         this.hud.showSpeech(gali);
@@ -939,18 +937,17 @@ class Game {
         this.nationalDamage += 2500;
         this.sound.playTakaChingSound(val);
         this.sound.playDhapashSound();
-        this.sound.playKiRagKorlaMusic(); // 🎵 Background viral music: "Ki rag korla?!"
 
         const pedGalis = [
-          'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
-          'আরে ভাই দেইখা হাঁটেন! কী রাগ করলা?!',
-          'রাস্তা কি তোমাগো বাপের?! কী রাগ করলা?!',
-          'ফুটপাতে ধাক্কা দিলেন কেন ভাই?! কী রাগ করলা?!'
+          'আরে ভাই দেইখা হাঁটেন!',
+          'রাস্তা কি তোমাগো বাপের?!',
+          'ফুটপাতে ধাক্কা দিলেন কেন ভাই?!',
+          'চোখে দেখেন না নাকি?! সাইড দিয়া যান!'
         ];
         const customGali = car.isSergeant 
-          ? 'সার্জেন্টকে ধাক্কা?! লাইসেন্স বাতিল কইরা দিমু! কী রাগ করলা?!' 
+          ? 'সার্জেন্টকে ধাক্কা?! লাইসেন্স বাতিল কইরা দিমু!' 
           : pedGalis[Math.floor(Math.random() * pedGalis.length)];
-        const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'পটাস!';
+        const starWord = 'পটাস!';
         const gali = this.effects.createDhapashImpact(
           car.group.position.x, 0.9, car.group.position.z, this.camera, starWord, customGali, val
         );
@@ -964,7 +961,6 @@ class Game {
         // Collision with Bus, HiAce, Sedan or CNG
         this.sound.playCrashSound(1.2);
         this.sound.playDhapashSound();
-        this.sound.playKiRagKorlaMusic(); // 🎵 Background viral music: "Ki rag korla?!"
         this.screenShake = 0.55;
         this.effects.createCrashSparks(pBounds.x, 0.8, pBounds.z, 20);
 
@@ -986,24 +982,21 @@ class Game {
             'সিএনজি কি খেলনা গাড়ি পাইছেন?! খাঁচা ভাইঙ্গা দিলেন!',
             'গ্যাস নাই সিলিন্ডারে, আবার পিছে গুঁতা মারেন!',
             'আরে ভাই দেইখা চালান! গ্যাস সিলিন্ডার ব্লাস্ট হইব তো!',
-            'সিএনজিওয়ালার সাথে টক্কর?! মিরপুর ১০ চেনেন?!',
-            'রাগ করলা? সিএনজির সামনে এমন ভাব লন ক্যান?!',
-            'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
-            'কী রাগ করলা?! সিএনজিরে বাড়ি মারলা কেন?!'
+            'সিএনজিওয়ালার সাথে টক্কর?! মিরপুর ১০ চেনেন?!'
           ];
           customGali = cngGalis[Math.floor(Math.random() * cngGalis.length)];
-          starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'ধপাস!';
+          starWord = 'ধপাস!';
         }
 
         if (!customGali) {
           const generalGalis = [
-            'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
-            'কী রাগ করলা?! ব্রেক নাই নাকি গাড়িতে?!',
-            'রাস্তার নবাব আইসা গুঁতা দিল! কী রাগ করলা?!',
-            'আরে ভাই দেইখা চালান! কী রাগ করলা?!'
+            'রাস্তার নবাব আইসা গুঁতা দিল রে!',
+            'ব্রেক নাই নাকি গাড়িতে?! সাইড দেন!',
+            'আরে ভাই দেইখা চালান!',
+            'রাস্তা কি আপনার বাপের?!'
           ];
           customGali = generalGalis[Math.floor(Math.random() * generalGalis.length)];
-          starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'ধপাস!';
+          starWord = 'ধপাস!';
         }
 
         // Comic DHAPASH Impact & Dhaka Street Gali!
@@ -1049,7 +1042,6 @@ class Game {
     for (const prop of propHits) {
       this.sound.playCrashSound(1.1);
       this.sound.playDhapashSound();
-      this.sound.playKiRagKorlaMusic();
       this.screenShake = 0.45;
       this.nationalDamage += prop.damage;
       this.takaCollected += prop.taka;
@@ -1070,7 +1062,6 @@ class Game {
         if (hit.type === 'human') {
           this.sound.playDhapashSound();
           this.sound.playTakaChingSound(500);
-          this.sound.playKiRagKorlaMusic(); // 🎵 "কী রাগ করলা?!" viral music!
           this.screenShake = 0.50;
           this.takaCollected += 500;
           this.nationalDamage += 3000;
@@ -1079,14 +1070,13 @@ class Game {
           this.effects.showFloatingText('+৳ ৫০০', '#ffd700', '26px');
 
           const pedGalis = [
-            'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
-            'ফুটপাতে গাড়ি উঠাইয়া মানুষ মারেন?! কী রাগ করলা?!',
+            'ফুটপাতে গাড়ি উঠাইয়া মানুষ মারেন?!',
             'রাস্তা কি তোমাগো বাপের?! ফুটপাতেও রিকশা চালায়!',
-            'আইছে আমার দেশি টেসলা! কী রাগ করলা?!',
-            'হাড়গোড় ভাইঙ্গা দিলেন ভাইরে ভাই! কী রাগ করলা?!'
+            'আইছে আমার দেশি টেসলা! সাইড দেন!',
+            'হাড়গোড় ভাইঙ্গা দিলেন ভাইরে ভাই!'
           ];
           const galiText = pedGalis[Math.floor(Math.random() * pedGalis.length)];
-          const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'ধপাস!';
+          const starWord = 'ধপাস!';
           const gali = this.effects.createDhapashImpact(
             hit.x, 1.0, hit.z, this.camera, starWord, galiText, 500
           );
@@ -1096,7 +1086,6 @@ class Game {
         } else if (hit.type === 'shop') {
           this.sound.playCrashSound(1.2);
           this.sound.playDhapashSound();
-          this.sound.playKiRagKorlaMusic(); // 🎵 "কী রাগ করলা?!" viral music!
           this.screenShake = 0.60;
           this.takaCollected += 800;
           this.nationalDamage += 6000;
@@ -1108,13 +1097,13 @@ class Game {
           pPos.z += 1.2;
 
           const shopGalis = [
-            'দোকান ভাইঙ্গা সব শেষ কইরা দিলেন! কী রাগ করলা?!',
-            'চা-বিস্কুট সব ড্রেনে পড়ল! কী রাগ করলা?!',
-            'ফুটপাতের দোকানে গুঁতা মারলা কেন ভাই?! কী রাগ করলা?!',
-            'ক্ষতিপূরণ কে দিব?! কী রাগ করলা নাকি সোনা?!'
+            'দোকান ভাইঙ্গা সব শেষ কইরা দিলেন রে!',
+            'চা-বিস্কুট সব ড্রেনে পড়ল!',
+            'ফুটপাতের দোকানে গুঁতা মারলা কেন ভাই?!',
+            'ক্ষতিপূরণ কে দিব?!'
           ];
           const galiText = shopGalis[Math.floor(Math.random() * shopGalis.length)];
-          const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'চুরমার!';
+          const starWord = 'চুরমার!';
           const gali = this.effects.createDhapashImpact(
             hit.x, 1.2, hit.z, this.camera, starWord, galiText, 6000
           );
@@ -1124,7 +1113,6 @@ class Game {
         } else if (hit.type === 'pole') {
           this.sound.playCrashSound(1.5);
           this.sound.playDhapashSound();
-          this.sound.playKiRagKorlaMusic(); // 🎵 "কী রাগ করলা?!" viral music!
           this.screenShake = 0.75;
           this.nationalDamage += 8000;
           this.effects.createCrashSparks(hit.x, 1.8, hit.z, 30);
@@ -1134,9 +1122,9 @@ class Game {
           pPos.z += 1.8;
 
           const poleGalis = [
-            'বৈদ্যুতিক খুঁটিতে গুঁতা মারলা?! কী রাগ করলা?!',
+            'বৈদ্যুতিক খুঁটিতে গুঁতা মারলা?!',
             'খুঁটির লগে যুদ্ধ বাঁধাইছো নি?! ব্রেক ধরো!',
-            'শর্ট সার্কিট হইব তো! কী রাগ করলা?!'
+            'শর্ট সার্কিট হইব তো!'
           ];
           const galiText = poleGalis[Math.floor(Math.random() * poleGalis.length)];
           const gali = this.effects.createDhapashImpact(

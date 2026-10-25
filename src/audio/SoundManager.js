@@ -71,25 +71,12 @@ export class SoundManager {
   }
 
   async preloadKiRagKorla() {
-    if (typeof window === 'undefined') return;
-    try {
-      let res = await fetch('/audio/rag_korla.mp3');
-      if (!res.ok) res = await fetch('/audio/ki_rag_korla.wav');
-      if (res.ok) this.rawKiRagKorlaData = await res.arrayBuffer();
-      if (this.ctx && !this.kiRagKorlaBuffer) {
-        this.decodeKiRagKorla();
-      }
-    } catch (e) {
-      console.warn('Preload Ki Rag Korla audio failed:', e);
-    }
+    // Disabled / Off: "STOP THE ALL TIME RAG KORLA OFF THAT"
+    return;
   }
 
   async decodeKiRagKorla() {
-    if (!this.ctx || !this.rawKiRagKorlaData || this.kiRagKorlaBuffer) return;
-    try {
-      const copy = this.rawKiRagKorlaData.slice(0);
-      this.kiRagKorlaBuffer = await this.ctx.decodeAudioData(copy);
-    } catch (e) {}
+    return;
   }
 
   init() {
@@ -457,7 +444,6 @@ export class SoundManager {
   // Phonetic Banglish translation for universal voice fallback on Windows/Chrome
   getBanglishTranslation(bnText) {
     if (!bnText) return 'Arey bhai dekhe chalan!';
-    if (bnText.includes('রাগ করলা')) return 'Ki rag korla?! Rag korla naki shona?!';
     if (bnText.includes('বাপের')) return 'Rasta ki tor baper?!';
     if (bnText.includes('ফুটপাতে')) return 'Footpate gari uthaiya manush maren?!';
     if (bnText.includes('সার্জেন্ট')) return 'Sergeant ke dhakka?! License batil koira dimu!';
@@ -687,45 +673,9 @@ export class SoundManager {
     } catch (e) {}
   }
 
-  // Viral Bengali Meme Hit Music: "কী রাগ করলা?!"
+  // Ki Rag Korla: Completely OFF / Disabled by user request
   playKiRagKorlaMusic() {
-    if (this.isMuted) return;
-
-    // Cooldown 1.5s to avoid overlapping
-    const now = Date.now();
-    if (this.lastKiRagKorlaTime && now - this.lastKiRagKorlaTime < 1500) {
-      return;
-    }
-    this.lastKiRagKorlaTime = now;
-
-    // 1. Play musical background sting
-    if (this.kiRagKorlaAudio) {
-      try {
-        this.kiRagKorlaAudio.currentTime = 0;
-        this.kiRagKorlaAudio.volume = 0.75;
-        this.kiRagKorlaAudio.play().catch(() => {});
-      } catch (e) {}
-    } else if (this.ctx && this.kiRagKorlaBuffer && this.masterGain) {
-      try {
-        const source = this.ctx.createBufferSource();
-        source.buffer = this.kiRagKorlaBuffer;
-        const gainNode = this.ctx.createGain();
-        gainNode.gain.setValueAtTime(0.7, this.ctx.currentTime);
-        source.connect(gainNode);
-        gainNode.connect(this.masterGain);
-        source.start();
-      } catch (e) {}
-    }
-
-    // 2. Playful Bengali TTS dialogue utterance
-    const phrases = [
-      'কী রাগ করলা?!',
-      'রাগ করলা নাকি সোনা?!',
-      'কী রাগ করলা নাকি?!',
-      'আরে ভাই রাগ করলা?!'
-    ];
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-    this.speakGali(phrase);
+    return;
   }
 
 }
