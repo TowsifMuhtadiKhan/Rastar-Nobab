@@ -14,8 +14,8 @@ export class RickshawTesla {
     this.braking = 52;
     this.friction = 14;
     this.steerAngle = 0;
-    this.maxSteerAngle = 0.58;
-    this.steerSpeed = 2.6;
+    this.maxSteerAngle = 0.68;
+    this.steerSpeed = 3.2;
     this.tilt = 0;
 
     // Upgrades
@@ -923,7 +923,8 @@ export class RickshawTesla {
     this.group.position.z -= moveZ;
 
     if (Math.abs(this.speed) > 0.5) {
-      this.group.position.x += this.steerAngle * (this.speed / 3.6) * delta * 1.6;
+      const latSpeed = Math.max(9.0, Math.abs(this.speed) / 3.6);
+      this.group.position.x += this.steerAngle * latSpeed * delta * 1.9;
     }
 
     // Check if player is near any active Chourasta intersection
@@ -931,7 +932,7 @@ export class RickshawTesla {
     let currentChourasta = null;
     if (activeChourastas && activeChourastas.length > 0) {
       for (const ch of activeChourastas) {
-        if (Math.abs(this.group.position.z - ch.z) < 14.0) {
+        if (Math.abs(this.group.position.z - ch.z) < 28.0) {
           isAtChourasta = true;
           currentChourasta = ch;
           break;
@@ -968,20 +969,23 @@ export class RickshawTesla {
       }
     }
 
-    // Auto-commit turn when user drives past |x| > 22 into the side avenue
+    // Auto-commit turn when user steers into the side avenue
     if (isAtChourasta && !this.isTurning && currentChourasta) {
-      if (this.group.position.x < -22.5 && input.left) {
+      if ((this.group.position.x < -7.5 && input.left) || this.group.position.x < -14.0) {
         this.startTurn('left', currentChourasta);
-      } else if (this.group.position.x > 22.5 && input.right) {
+      } else if ((this.group.position.x > 7.5 && input.right) || this.group.position.x > 14.0) {
         this.startTurn('right', currentChourasta);
       }
     }
 
     // Dynamic 90-degree intersection turn animation
     if (this.isTurning) {
-      this.turnProgress += delta * 1.8;
+      this.turnProgress += delta * 1.6;
       const p = Math.min(1.0, this.turnProgress);
       const sign = (this.turnDirection === 'left') ? -1 : 1;
+
+      // Smooth arc into the crossroad
+      this.group.position.x += sign * 18.0 * delta * (1.0 - p * 0.4);
 
       // Dynamic drift yaw rotation
       this.group.rotation.y = sign * (Math.PI / 2) * Math.sin(p * Math.PI * 0.5);

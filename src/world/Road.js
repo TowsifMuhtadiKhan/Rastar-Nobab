@@ -404,11 +404,11 @@ export class Road {
 
     // 9. Side-Street Dhaka Atmosphere Props (Tea stalls, fruit cart, billboards)
     const cornerTong = this.createCornerTeaStall();
-    cornerTong.position.set(-16.5, 0.2, 13.5);
+    cornerTong.position.set(-20.5, 0.2, 14.0);
     group.add(cornerTong);
 
     const cornerFruit = this.createCornerFruitCart();
-    cornerFruit.position.set(16.5, 0.2, 13.5);
+    cornerFruit.position.set(20.5, 0.2, 14.0);
     group.add(cornerFruit);
 
     return group;
@@ -700,7 +700,7 @@ export class Road {
   createChourastaGantry(stationData) {
     const group = new THREE.Group();
     const gantryHeight = 6.2;
-    const spanWidth = 27.5;
+    const spanWidth = 38.0;
 
     const steelMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
 

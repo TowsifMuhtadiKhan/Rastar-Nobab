@@ -190,10 +190,10 @@ export class DhakaCity {
       this.footpathHumans.push({ group: ped, baseZ: z, isLeft });
     }
 
-    // 4. Concrete Utility Poles with Transformers (spaced neatly at edge of curb)
+    // 4. Concrete Utility Poles with Transformers (spaced neatly at outer edge of footpath)
     for (let p = 0; p < 16; p++) {
       const isLeft = p % 2 === 0;
-      const x = isLeft ? -13.2 : 13.2;
+      const x = isLeft ? -17.5 : 17.5;
       let z = -p * 32;
       if (this.isChourastaCrossing(z)) z -= 16;
       const pole = this.createElectricPole(isLeft);
@@ -831,7 +831,7 @@ export class DhakaCity {
     const bridgeHeight = 6.8;
     const steelMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
 
-    const spanGeo = new THREE.BoxGeometry(28, 1.8, 3.2);
+    const spanGeo = new THREE.BoxGeometry(38, 1.8, 3.2);
     const span = new THREE.Mesh(spanGeo, steelMat);
     span.position.set(0, bridgeHeight, 0);
     span.castShadow = true;
@@ -839,11 +839,11 @@ export class DhakaCity {
 
     const pillarGeo = new THREE.BoxGeometry(1.2, bridgeHeight, 1.2);
     const pillarL = new THREE.Mesh(pillarGeo, steelMat);
-    pillarL.position.set(-13.2, bridgeHeight / 2, 0);
+    pillarL.position.set(-18.5, bridgeHeight / 2, 0);
     group.add(pillarL);
 
     const pillarR = new THREE.Mesh(pillarGeo, steelMat);
-    pillarR.position.set(13.2, bridgeHeight / 2, 0);
+    pillarR.position.set(18.5, bridgeHeight / 2, 0);
     group.add(pillarR);
 
     // Giant Billboard on Bridge

@@ -791,6 +791,96 @@ body, html {
   text-align: center;
 }
 /* ========================================================================= */
+/* CHOURASTA 4-WAY NAVIGATION TURN DOCK (FLOATING GLOWING ACTION PROMPT)    */
+/* ========================================================================= */
+.chourasta-turn-dock {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  padding: 8px 16px;
+  border-radius: 30px;
+  border: 2px solid rgba(56, 189, 248, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.35);
+  z-index: 25;
+  pointer-events: auto;
+  animation: pulseDock 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes pulseDock {
+  0% { transform: translateX(-50%) scale(0.98); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.3); }
+  100% { transform: translateX(-50%) scale(1.02); box-shadow: 0 8px 28px rgba(56, 189, 248, 0.6); }
+}
+
+.turn-dock-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border: 1.5px solid #38bdf8;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: all 0.15s ease;
+}
+
+.turn-dock-btn:hover, .turn-dock-btn:active {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  transform: scale(1.06);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
+}
+
+.turn-dock-right {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #34d399;
+}
+.turn-dock-right:hover, .turn-dock-right:active {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: 0 0 15px rgba(52, 211, 153, 0.8);
+}
+
+.turn-dock-straight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dock-arrow {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .chourasta-turn-dock {
+    bottom: 96px;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  .turn-dock-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .turn-dock-straight {
+    display: none;
+  }
+}
+
+/* ========================================================================= */
 /* BOTTOM CONTROLS: TOUCH STEERING, 12V HORN, TURBO & BRAKE (NO OVERLAP!)    */
 /* ========================================================================= */
 .bottom-controls {

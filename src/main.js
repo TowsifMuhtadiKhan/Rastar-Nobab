@@ -168,6 +168,23 @@ class Game {
       };
     }
 
+    // Floating Chourasta 4-Way Navigation Turn Dock Buttons
+    const dockBtnLeft = document.getElementById('dock-btn-left');
+    const dockBtnRight = document.getElementById('dock-btn-right');
+    const triggerTurn = (dir) => {
+      if (this.player && this._currentTurnChourasta) {
+        this.player.startTurn(dir, this._currentTurnChourasta);
+      }
+    };
+    if (dockBtnLeft) {
+      dockBtnLeft.addEventListener('pointerdown', (e) => { e.stopPropagation(); triggerTurn('left'); });
+      dockBtnLeft.addEventListener('click', (e) => { e.stopPropagation(); triggerTurn('left'); });
+    }
+    if (dockBtnRight) {
+      dockBtnRight.addEventListener('pointerdown', (e) => { e.stopPropagation(); triggerTurn('right'); });
+      dockBtnRight.addEventListener('click', (e) => { e.stopPropagation(); triggerTurn('right'); });
+    }
+
     // Populate Highest Record on Start Screen
     const savedRec = parseInt(localStorage.getItem('dhaka_easybike_rush_high_score') || localStorage.getItem('baper_rasta_high_record') || '25400', 10);
     const startRecEl = document.getElementById('start-record-val');
@@ -766,13 +783,21 @@ class Game {
       lookAhead = baseLook;
     }
 
-    // Perfectly straight centered chase camera (Zero sideways tilt or angular offset!)
+    // Dynamic chase camera following vehicle yaw rotation so turns swing naturally
+    const rotY = (this.player.group && this.player.group.rotation) ? this.player.group.rotation.y : 0;
+    const sinY = Math.sin(rotY);
+    const cosY = Math.cos(rotY);
+
     const targetCamPos = new THREE.Vector3(
-      pPos.x,
+      pPos.x - sinY * dist,
       pPos.y + height,
-      pPos.z + dist
+      pPos.z + cosY * dist
     );
-    const targetLookAt = new THREE.Vector3(pPos.x, pPos.y + 0.95, pPos.z + lookAhead);
+    const targetLookAt = new THREE.Vector3(
+      pPos.x + sinY * Math.abs(lookAhead),
+      pPos.y + 0.95,
+      pPos.z - cosY * Math.abs(lookAhead)
+    );
 
     if (this.screenShake > 0) {
       targetCamPos.x += (Math.random() - 0.5) * this.screenShake;
@@ -1389,6 +1414,35 @@ class Game {
           this.traffic.vipCar,
           mapData?.currentStation
         );
+      }
+
+      // Update Prominent Chourasta 4-Way Turn Dock
+      let nearChourasta = null;
+      if (activeChourastas && activeChourastas.length > 0) {
+        for (const ch of activeChourastas) {
+          if (Math.abs(pZ - ch.z) < 45.0) {
+            nearChourasta = ch;
+            break;
+          }
+        }
+      }
+
+      const turnDock = document.getElementById('chourasta-turn-dock');
+      if (turnDock) {
+        if (nearChourasta && nearChourasta.stationData) {
+          const sd = nearChourasta.stationData;
+          turnDock.style.display = 'flex';
+          const leftName = document.getElementById('dock-left-name');
+          const rightName = document.getElementById('dock-right-name');
+          const straightName = document.getElementById('dock-straight-name');
+          if (leftName) leftName.innerText = sd.left ? sd.left.replace('⬅ ', '') : 'বামে মোড়';
+          if (rightName) rightName.innerText = sd.right ? sd.right.replace(' ➡', '') : 'ডানে মোড়';
+          if (straightName) straightName.innerHTML = `<span class="dock-arrow">⬆</span> ${sd.straight ? sd.straight.replace(/⬆/g, '').trim() : 'সোজা হাইওয়ে'}`;
+          this._currentTurnChourasta = nearChourasta;
+        } else {
+          turnDock.style.display = 'none';
+          this._currentTurnChourasta = null;
+        }
       }
 
       this.hud.update(
