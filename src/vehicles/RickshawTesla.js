@@ -17,6 +17,11 @@ export class RickshawTesla {
     this.maxSteerAngle = 0.68;
     this.steerSpeed = 3.2;
     this.tilt = 0;
+    this.heading = 0; // True 3D heading angle (0 = forward down highway, PI = backward U-turn)
+    this.isUTurning = false;
+    this.uTurnTimer = 0;
+    this.uTurnDirection = 1;
+    this.uTurnStartHeading = 0;
 
     // Upgrades
     this.upgradeLevel = 1;
@@ -859,6 +864,18 @@ export class RickshawTesla {
     if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
   }
 
+  triggerUTurn(direction = 'right') {
+    if (this.isUTurning) return;
+    this.isUTurning = true;
+    this.uTurnTimer = 0;
+    this.uTurnDirection = direction === 'left' ? -1 : 1;
+    this.uTurnStartHeading = this.heading;
+    this.speed = Math.max(30, Math.min(65, Math.abs(this.speed)));
+    if (this.onTurnStart) {
+      this.onTurnStart('uturn', { left: 'ইউ-টার্ন', right: 'ইউ-টার্ন' });
+    }
+  }
+
   update(delta, input, activeChourastas = []) {
     // Update active turbo boost timer
     if (this.boostTimer > 0) {
@@ -897,22 +914,58 @@ export class RickshawTesla {
       this.battery = Math.max(0, this.battery - 0.015);
     }
 
-    // Steering: Left turns to negative X, Right turns to positive X (Arcade snappiness matching baperrasta.com)
-    let targetSteer = 0;
-    if (input.left) targetSteer -= this.maxSteerAngle;
-    if (input.right) targetSteer += this.maxSteerAngle;
+    // Steering & Heading Controls (Full 360 Free-Roam & U-Turn Physics matching baperrasta.com)
+    if (this.isUTurning) {
+      this.uTurnTimer += delta;
+      const turnProgress = Math.min(1.0, this.uTurnTimer / 0.85); // 0.85s quick 180° power drift U-Turn
+      this.heading = this.uTurnStartHeading + this.uTurnDirection * Math.PI * turnProgress;
+      this.steerAngle = this.uTurnDirection * this.maxSteerAngle;
+      this.tilt = -this.uTurnDirection * 0.35; // Authentic high tilt during U-turn
 
-    this.steerAngle += (targetSteer - this.steerAngle) * this.steerSpeed * delta * 8.5;
+      if (turnProgress >= 1.0) {
+        this.isUTurning = false;
+        while (this.heading > Math.PI) this.heading -= Math.PI * 2;
+        while (this.heading < -Math.PI) this.heading += Math.PI * 2;
+        if (this.onTurnComplete) {
+          this.onTurnComplete('uturn', { name: 'ইউ-টার্ন মোড়' });
+        }
+      }
+    } else {
+      let targetSteer = 0;
+      if (input.left) targetSteer -= this.maxSteerAngle;
+      if (input.right) targetSteer += this.maxSteerAngle;
+
+      this.steerAngle += (targetSteer - this.steerAngle) * this.steerSpeed * delta * 7.5;
+
+      // When moving, steering angle continuously rotates the vehicle's heading!
+      if (Math.abs(this.speed) > 0.5) {
+        const dirSign = this.speed >= 0 ? 1 : -1;
+        const speedNorm = Math.min(1.3, Math.max(0.7, Math.abs(this.speed) / 32));
+        const turnAngularSpeed = -this.steerAngle * 3.4 * speedNorm * dirSign;
+        this.heading += turnAngularSpeed * delta;
+
+        // Auto-center heading to nearest road axis (0 or PI) when no steering key is pressed
+        if (!input.left && !input.right) {
+          let normH = this.heading;
+          while (normH > Math.PI) normH -= Math.PI * 2;
+          while (normH < -Math.PI) normH += Math.PI * 2;
+
+          if (Math.abs(normH) < 0.28) {
+            this.heading += (0 - normH) * 5.0 * delta;
+          } else if (Math.PI - Math.abs(normH) < 0.28) {
+            const target = normH > 0 ? Math.PI : -Math.PI;
+            this.heading += (target - normH) * 5.0 * delta;
+          }
+        }
+      }
+
+      // Authentic Baper Rasta 3-Wheeler Canopy Lean & Body Roll Sway!
+      const speedRatio = Math.min(1.2, Math.abs(this.speed) / 45);
+      const targetTilt = -this.steerAngle * (0.24 + speedRatio * 0.12);
+      this.tilt += (targetTilt - this.tilt) * 9.0 * delta;
+    }
+
     this.forkGroup.rotation.y = -this.steerAngle * 1.25;
-
-    // Authentic Baper Rasta 3-Wheeler Canopy Lean & Body Roll Sway!
-    const speedRatio = Math.min(1.2, Math.abs(this.speed) / 45);
-    const targetTilt = -this.steerAngle * (0.24 + speedRatio * 0.12);
-    this.tilt += (targetTilt - this.tilt) * 9.0 * delta;
-
-    // Dynamic Heading Yaw: Body points organically into the turn/drift
-    const targetYaw = -this.steerAngle * 0.42;
-    this.group.rotation.y += (targetYaw - this.group.rotation.y) * 8.0 * delta;
 
     // Acceleration Squat & Braking Nose-Dive on Front Shocks
     let targetPitch = 0;
@@ -942,6 +995,7 @@ export class RickshawTesla {
       ? (Math.sin(Date.now() * 0.014) * (Math.abs(this.speed) / 50) * 0.014)
       : 0;
 
+    this.group.rotation.y = this.heading;
     this.group.rotation.z = this.tilt + rollWobble;
     this.group.position.y = surfaceHeight + roadBounce;
 
@@ -951,13 +1005,18 @@ export class RickshawTesla {
     this.leftRearWheel.rotation.x += spin;
     this.rightRearWheel.rotation.x += spin;
 
-    // Move along road
-    const moveZ = (this.speed / 3.6) * delta;
-    this.group.position.z -= moveZ;
+    // Move along actual Heading Direction Vector in 3D Space (Full 360 degree movement)
+    const moveDist = (this.speed / 3.6) * delta;
+    this.group.position.x += -Math.sin(this.heading) * moveDist;
+    this.group.position.z += -Math.cos(this.heading) * moveDist;
 
-    if (Math.abs(this.speed) > 0.5) {
-      const latSpeed = Math.max(10.5, Math.abs(this.speed) / 3.6);
-      this.group.position.x += this.steerAngle * latSpeed * delta * 2.3;
+    // Outer Street & Sidewalk Wall Boundaries (36m wide playable road corridor)
+    if (this.group.position.x > 18.2) {
+      this.group.position.x = 18.2;
+      this.speed *= 0.88;
+    } else if (this.group.position.x < -18.2) {
+      this.group.position.x = -18.2;
+      this.speed *= 0.88;
     }
 
     // Check if player is near any active Chourasta intersection

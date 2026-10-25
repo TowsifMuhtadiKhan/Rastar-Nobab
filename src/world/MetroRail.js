@@ -123,14 +123,21 @@ export class MetroRail {
     if (this.wallL) this.wallL.position.z = playerZ - 50;
     if (this.wallR) this.wallR.position.z = playerZ - 50;
 
-    // Reposition pillars endlessly
+    // Reposition pillars endlessly in both directions for U-Turns
+    const halfSpan = (this.pillars.length * this.pillarSpacing) / 2; // 160m
     for (const p of this.pillars) {
-      if (p.position.z > playerZ + 40) {
-        let minZ = 0;
+      if (p.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.pillars) {
           if (other.position.z < minZ) minZ = other.position.z;
         }
         p.position.z = this.getSafePillarZ(minZ - this.pillarSpacing);
+      } else if (p.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.pillars) {
+          if (other.position.z > maxZ) maxZ = other.position.z;
+        }
+        p.position.z = this.getSafePillarZ(maxZ + this.pillarSpacing);
       }
     }
 

@@ -20,7 +20,7 @@ export class Road {
     this.scene = scene;
     this.segments = [];
     this.segmentLength = 80;
-    this.numSegments = 6; // 6 segments x 80m = 480m total highway
+    this.numSegments = 8; // 8 segments x 80m = 640m total highway (seamless bi-directional streaming for U-turns!)
     this.roadWidth = 26;
     this.chourastaCounter = 0;
 
@@ -48,9 +48,11 @@ export class Road {
 
   initRoad() {
     for (let i = 0; i < this.numSegments; i++) {
-      const isChourasta = (i % 3 === 0);
+      // 2 segments behind (+80, 0) and 6 segments ahead (-80 to -480) for continuous U-Turn rendering!
+      const segZ = (1 - i) * this.segmentLength;
+      const isChourasta = (i % 3 === 1);
       const segment = isChourasta ? this.createChourastaSegment(i) : this.createStraightSegment(i);
-      segment.position.z = -i * this.segmentLength;
+      segment.position.z = segZ;
       this.scene.add(segment);
       this.segments.push(segment);
     }
@@ -113,27 +115,66 @@ export class Road {
     walkR.receiveShadow = true;
     group.add(walkR);
 
-    // Central Raised Median Divider
-    const medianBase = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, this.segmentLength), curbMat);
-    medianBase.position.set(0, 0.25, 0);
-    medianBase.castShadow = true;
-    medianBase.receiveShadow = true;
-    group.add(medianBase);
+    // Central Raised Median with Open U-Turn Gap at Center (z: -7 to +7m for free U-Turns!)
+    const medianLen = (this.segmentLength - 14) / 2; // (80 - 14)/2 = 33m
+    const medianN = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, medianLen), curbMat);
+    medianN.position.set(0, 0.22, -(medianLen / 2 + 7));
+    medianN.castShadow = true;
+    medianN.receiveShadow = true;
+    group.add(medianN);
 
-    // Soil bed inside median
+    const medianS = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, medianLen), curbMat);
+    medianS.position.set(0, 0.22, (medianLen / 2 + 7));
+    medianS.castShadow = true;
+    medianS.receiveShadow = true;
+    group.add(medianS);
+
+    // Bullnose rounded curb ends for the U-turn gap
+    const bullGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.45, 16, 1, false, 0, Math.PI);
+    const bullN = new THREE.Mesh(bullGeo, curbMat);
+    bullN.rotation.y = -Math.PI / 2;
+    bullN.position.set(0, 0.22, -7.0);
+    group.add(bullN);
+
+    const bullS = new THREE.Mesh(bullGeo, curbMat);
+    bullS.rotation.y = Math.PI / 2;
+    bullS.position.set(0, 0.22, 7.0);
+    group.add(bullS);
+
+    // Yellow U-Turn Pavement Road Markings inside the median gap
+    const uTurnDecalMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.8 });
+    for (const uz of [-2.5, 2.5]) {
+      const uTurnDecal = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), uTurnDecalMat);
+      uTurnDecal.rotation.x = -Math.PI / 2;
+      uTurnDecal.position.set(0, 0.02, uz);
+      group.add(uTurnDecal);
+    }
+
+    // Soil beds inside north and south medians
     const soilMat = new THREE.MeshStandardMaterial({ color: 0x2b1d14, roughness: 0.95 });
-    const soil = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, this.segmentLength), soilMat);
-    soil.position.set(0, 0.52, 0);
-    group.add(soil);
+    const soilN = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, medianLen - 2), soilMat);
+    soilN.position.set(0, 0.46, -(medianLen / 2 + 7));
+    group.add(soilN);
 
-    // Low green shrubs & bushes along median
+    const soilS = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, medianLen - 2), soilMat);
+    soilS.position.set(0, 0.46, (medianLen / 2 + 7));
+    group.add(soilS);
+
+    // Low green shrubs & bushes along north & south medians (keeping U-turn gap clear!)
     const bushMat1 = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 });
     const bushMat2 = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.8 });
 
-    for (let z = -this.segmentLength / 2 + 4; z < this.segmentLength / 2; z += 7) {
-      const bGeo = new THREE.DodecahedronGeometry(0.45 + Math.random() * 0.15, 1);
-      const bush = new THREE.Mesh(bGeo, z % 14 === 0 ? bushMat1 : bushMat2);
-      bush.position.set((Math.random() - 0.5) * 0.35, 0.75, z);
+    for (let z = -36; z <= -11; z += 6) {
+      const bGeo = new THREE.DodecahedronGeometry(0.42 + Math.random() * 0.12, 1);
+      const bush = new THREE.Mesh(bGeo, z % 12 === 0 ? bushMat1 : bushMat2);
+      bush.position.set((Math.random() - 0.5) * 0.35, 0.70, z);
+      bush.castShadow = true;
+      group.add(bush);
+    }
+    for (let z = 11; z <= 36; z += 6) {
+      const bGeo = new THREE.DodecahedronGeometry(0.42 + Math.random() * 0.12, 1);
+      const bush = new THREE.Mesh(bGeo, z % 12 === 0 ? bushMat1 : bushMat2);
+      bush.position.set((Math.random() - 0.5) * 0.35, 0.70, z);
       bush.castShadow = true;
       group.add(bush);
     }
@@ -839,37 +880,49 @@ export class Road {
   }
 
   // --------------------------------------------------------------------------
-  // Update Road segments & recycling
+  // Update Road segments & Bi-directional Recycling (Seamless U-Turns!)
   // --------------------------------------------------------------------------
   update(playerZ) {
+    const halfBuffer = (this.numSegments * this.segmentLength) / 2; // 320m window centered around player
     for (const segment of this.segments) {
-      if (segment.position.z > playerZ + this.segmentLength) {
-        let minZ = 0;
+      if (segment.position.z > playerZ + halfBuffer) {
+        // Player moving forward (towards -Z): segment is too far behind -> recycle ahead
+        let minZ = playerZ;
         for (const s of this.segments) {
           if (s.position.z < minZ) minZ = s.position.z;
         }
         segment.position.z = minZ - this.segmentLength;
-
-        // If recycled segment is a Chourasta, update its station sign!
-        if (segment.userData && segment.userData.isChourasta) {
-          const nextIndex = this.chourastaCounter % CHOURASTA_STATIONS.length;
-          const nextStation = CHOURASTA_STATIONS[nextIndex];
-          this.chourastaCounter++;
-
-          segment.userData.stationData = nextStation;
-          segment.userData.stationIndex = nextIndex;
-
-          if (segment.userData.gantrySignMesh) {
-            const newTex = TextureFactory.createChourastaGantryTexture(
-              nextStation.name,
-              nextStation.left,
-              nextStation.straight,
-              nextStation.right
-            );
-            segment.userData.gantrySignMesh.material.map = newTex;
-            segment.userData.gantrySignMesh.material.needsUpdate = true;
-          }
+        this.updateChourastaSign(segment);
+      } else if (segment.position.z < playerZ - halfBuffer) {
+        // Player did a U-Turn and is driving backward (towards +Z): recycle behind
+        let maxZ = playerZ;
+        for (const s of this.segments) {
+          if (s.position.z > maxZ) maxZ = s.position.z;
         }
+        segment.position.z = maxZ + this.segmentLength;
+        this.updateChourastaSign(segment);
+      }
+    }
+  }
+
+  updateChourastaSign(segment) {
+    if (segment.userData && segment.userData.isChourasta) {
+      const nextIndex = this.chourastaCounter % CHOURASTA_STATIONS.length;
+      const nextStation = CHOURASTA_STATIONS[nextIndex];
+      this.chourastaCounter++;
+
+      segment.userData.stationData = nextStation;
+      segment.userData.stationIndex = nextIndex;
+
+      if (segment.userData.gantrySignMesh) {
+        const newTex = TextureFactory.createChourastaGantryTexture(
+          nextStation.name,
+          nextStation.left,
+          nextStation.straight,
+          nextStation.right
+        );
+        segment.userData.gantrySignMesh.material.map = newTex;
+        segment.userData.gantrySignMesh.material.needsUpdate = true;
       }
     }
   }

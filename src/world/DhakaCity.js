@@ -900,30 +900,44 @@ export class DhakaCity {
     }
   }
 
+  setBuildingZ(b, newZ) {
+    b.mesh.position.z = newZ;
+    b.tank.position.z = newZ;
+    b.dish.position.z = newZ;
+    b.shop.position.z = newZ;
+    b.canopy.position.z = newZ;
+    if (b.flag) b.flag.position.z = newZ;
+    for (const bal of b.balconies) bal.position.z = newZ;
+  }
+
   update(delta, playerZ) {
-    // 1. Buildings recycling
+    const halfSpan = 240; // 480m total city span for seamless U-Turns
+
+    // 1. Buildings bi-directional recycling
     for (const b of this.buildings) {
-      if (b.mesh.position.z > playerZ + 40) {
-        let minZ = 0;
+      if (b.mesh.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.buildings) {
           if (other.mesh.position.z < minZ) minZ = other.mesh.position.z;
         }
         let newZ = minZ - 18;
         if (this.isChourastaCrossing(newZ)) newZ -= 16;
-        b.mesh.position.z = newZ;
-        b.tank.position.z = newZ;
-        b.dish.position.z = newZ;
-        b.shop.position.z = newZ;
-        b.canopy.position.z = newZ;
-        if (b.flag) b.flag.position.z = newZ;
-        for (const bal of b.balconies) bal.position.z = newZ;
+        this.setBuildingZ(b, newZ);
+      } else if (b.mesh.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.buildings) {
+          if (other.mesh.position.z > maxZ) maxZ = other.mesh.position.z;
+        }
+        let newZ = maxZ + 18;
+        if (this.isChourastaCrossing(newZ)) newZ += 16;
+        this.setBuildingZ(b, newZ);
       }
     }
 
-    // 2. Footpath Human Shops recycling
+    // 2. Footpath Human Shops bi-directional recycling
     for (const s of this.footpathShops) {
-      if (s.group.position.z > playerZ + 40) {
-        let minZ = 0;
+      if (s.group.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.footpathShops) {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
@@ -932,14 +946,24 @@ export class DhakaCity {
         s.group.position.z = nextZ;
         s.group.rotation.z = 0;
         s.isHit = false;
+      } else if (s.group.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.footpathShops) {
+          if (other.group.position.z > maxZ) maxZ = other.group.position.z;
+        }
+        let nextZ = maxZ + 25;
+        if (this.isChourastaCrossing(nextZ)) nextZ += 16;
+        s.group.position.z = nextZ;
+        s.group.rotation.z = 0;
+        s.isHit = false;
       }
     }
 
-    // 3. Footpath Pedestrians recycling & gentle walking animation
+    // 3. Footpath Pedestrians bi-directional recycling & gentle walking animation
     const walkBob = Math.sin(Date.now() * 0.008) * 0.03;
     for (const ped of this.footpathHumans) {
-      if (ped.group.position.z > playerZ + 35) {
-        let minZ = 0;
+      if (ped.group.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.footpathHumans) {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
@@ -948,53 +972,74 @@ export class DhakaCity {
         ped.group.position.z = nextZ;
         ped.group.rotation.z = 0;
         ped.isHit = false;
+      } else if (ped.group.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.footpathHumans) {
+          if (other.group.position.z > maxZ) maxZ = other.group.position.z;
+        }
+        let nextZ = maxZ + 28;
+        if (this.isChourastaCrossing(nextZ)) nextZ += 16;
+        ped.group.position.z = nextZ;
+        ped.group.rotation.z = 0;
+        ped.isHit = false;
       }
       ped.group.position.y = 0.28 + Math.abs(walkBob);
     }
 
-    // 4. Utility Poles recycling
+    // 4. Utility Poles bi-directional recycling
     for (const p of this.electricPoles) {
-      if (p.position.z > playerZ + 30) {
-        let minZ = 0;
+      if (p.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.electricPoles) {
           if (other.position.z < minZ) minZ = other.position.z;
         }
         let nextZ = minZ - 32;
         if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
         p.position.z = nextZ;
+      } else if (p.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.electricPoles) {
+          if (other.position.z > maxZ) maxZ = other.position.z;
+        }
+        let nextZ = maxZ + 32;
+        if (this.isChourastaCrossing(nextZ)) nextZ += 16;
+        p.position.z = nextZ;
       }
     }
 
-    // 5. Overhead Wires recycling
+    // 5. Overhead Wires bi-directional recycling
     for (const ow of this.overheadWires) {
-      if (ow.line.position.z > playerZ + 30) {
-        let minZ = 0;
+      if (ow.line.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.overheadWires) {
           if (other.line.position.z < minZ) minZ = other.line.position.z;
         }
         ow.line.position.z = minZ - 32;
-      }
-    }
-
-    // 6. Footbridges recycling
-    for (const fb of this.footbridges) {
-      if (fb.position.z > playerZ + 40) {
-        let minZ = 0;
-        for (const other of this.footbridges) {
-          if (other.position.z < minZ) minZ = other.position.z;
+      } else if (ow.line.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.overheadWires) {
+          if (other.line.position.z > maxZ) maxZ = other.line.position.z;
         }
-        fb.position.z = minZ - 140;
+        ow.line.position.z = maxZ + 32;
       }
     }
 
-    // 7. Boundary Walls & Trees recycling
+    // 6. Boundary Walls & Trees bi-directional recycling
     for (const bw of this.boundaryWalls) {
-      if (bw.position.z > playerZ + 40) {
-        let minZ = 0;
+      if (bw.position.z > playerZ + halfSpan) {
+        let minZ = playerZ;
         for (const other of this.boundaryWalls) {
           if (other.position.z < minZ) minZ = other.position.z;
         }
         let nextZ = minZ - 18;
+        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
+        bw.position.z = nextZ;
+      } else if (bw.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.boundaryWalls) {
+          if (other.position.z > maxZ) maxZ = other.position.z;
+        }
+        let nextZ = maxZ + 18;
         if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
         bw.position.z = nextZ;
       }

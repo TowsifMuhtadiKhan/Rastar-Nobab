@@ -1078,6 +1078,18 @@ body, html {
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.6);
 }
 
+.paddle-btn.uturn-btn {
+  background: linear-gradient(145deg, #0f766e, #134e4a);
+  border-color: #2dd4bf;
+  color: #facc15;
+  box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
+}
+
+.paddle-btn.uturn-btn:active {
+  background: linear-gradient(145deg, #14b8a6, #0f766e);
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.9);
+}
+
 /* AUTHENTIC 12V EASYBIKE HORN PEDAL - SLEEK, NON-OVERLAPPING */
 .hud-horn-btn {
   height: 52px;
@@ -2814,16 +2826,16 @@ body, html {
   }
 
   .ctrl-group {
-    gap: 5px;
+    gap: 4px;
   }
 
   .paddle-btn {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
-    border-radius: 13px;
-    font-size: 18px;
+    width: 42px;
+    height: 46px;
+    min-width: 40px;
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 16px;
     touch-action: manipulation;
   }
 

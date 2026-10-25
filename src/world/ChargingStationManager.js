@@ -433,13 +433,21 @@ export class ChargingStationManager {
         st.groundLight.intensity = 1.5 + Math.sin(now * 0.008) * 0.7;
       }
 
-      // Recycle stations as player drives forward
-      if (st.group.position.z > playerZ + 60) {
+      // Bi-directional recycling for U-Turns (always keeps stations ahead and behind!)
+      const halfSpan = (this.stations.length * this.stationSpacing) / 2; // 480m
+      if (st.group.position.z > playerZ + halfSpan) {
         let minZ = playerZ;
         for (const other of this.stations) {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
         st.group.position.z = minZ - this.stationSpacing;
+        st.boxPos.z = st.group.position.z + 0.12;
+      } else if (st.group.position.z < playerZ - halfSpan) {
+        let maxZ = playerZ;
+        for (const other of this.stations) {
+          if (other.group.position.z > maxZ) maxZ = other.group.position.z;
+        }
+        st.group.position.z = maxZ + this.stationSpacing;
         st.boxPos.z = st.group.position.z + 0.12;
       }
     }

@@ -532,6 +532,16 @@ class Game {
             this.triggerHorn(true);
           }
           break;
+        case 'KeyU':
+        case 'KeyT':
+          if (this.player) {
+            this.player.triggerUTurn(this.input.left ? 'left' : 'right');
+            this.sound.playTireScreech();
+            this.screenShake = 0.45;
+            this.effects.showFloatingText('🔄 ইউ-টার্ন!', '#facc15', '24px');
+            this.hud.showSpeech('🔄 ঘুরায়া দিছি নবাব! উল্টাপথে চইলা গেলাম!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা', false);
+          }
+          break;
         case 'ShiftLeft':
         case 'ShiftRight':
         case 'KeyE':
@@ -590,6 +600,19 @@ class Game {
     this.hookTouchBtn('btn-left', (active) => { this.input.left = active; });
     this.hookTouchBtn('btn-right', (active) => { this.input.right = active; });
     this.hookTouchBtn('btn-brake', (active) => { this.input.backward = active; });
+
+    const triggerUTurnAction = () => {
+      if (this.player) {
+        this.player.triggerUTurn(this.input.left ? 'left' : 'right');
+        this.sound.playTireScreech();
+        this.screenShake = 0.45;
+        this.effects.showFloatingText('🔄 ইউ-টার্ন!', '#facc15', '24px');
+        this.hud.showSpeech('🔄 ঘুরায়া দিছি নবাব! উল্টাপথে চইলা গেলাম!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা', false);
+      }
+    };
+    this.hookTouchBtn('btn-uturn', (active) => { if (active) triggerUTurnAction(); });
+    const uturnBtn = document.getElementById('btn-uturn');
+    if (uturnBtn) uturnBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerUTurnAction(); });
     const triggerTurbo = () => {
       this.input.boost = true;
       if (this.player) this.player.activateTurboBoost(2.8);
@@ -796,28 +819,38 @@ class Game {
       const isPortrait = window.innerWidth < 640 || window.innerHeight > window.innerWidth;
       const baseDist = isPortrait ? 6.8 : 5.8;
       const baseHeight = isPortrait ? 4.2 : 3.6;
-      const baseLook = isPortrait ? -22 : -20;
+      const baseLook = isPortrait ? 20 : 18;
 
-      dist = (baseDist + (this.player.speed / 50) * 1.0) * zoom;
-      // Keep camera elevated so driver clearly looks over the rickshaw's roof down the road
-      height = (baseHeight + (this.player.speed / 60) * 0.7) * Math.max(0.72, Math.min(1.0, zoom + 0.20));
+      dist = (baseDist + (Math.abs(this.player.speed) / 50) * 1.0) * zoom;
+      height = (baseHeight + (Math.abs(this.player.speed) / 60) * 0.7) * Math.max(0.72, Math.min(1.0, zoom + 0.20));
       lookAhead = baseLook;
     }
 
-    // Dynamic chase camera following vehicle yaw rotation so turns swing naturally
-    const rotY = (this.player.group && this.player.group.rotation) ? this.player.group.rotation.y : 0;
-    const sinY = Math.sin(rotY);
-    const cosY = Math.cos(rotY);
+    // Dynamic chase camera following full 360 heading angle & U-Turns!
+    const heading = (this.player && typeof this.player.heading === 'number')
+      ? this.player.heading
+      : ((this.player && this.player.group) ? this.player.group.rotation.y : 0);
 
+    if (this.currentCamHeading === undefined) this.currentCamHeading = heading;
+    let diff = heading - this.currentCamHeading;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    this.currentCamHeading += diff * Math.min(1.0, 7.5 * delta);
+
+    const sinH = Math.sin(this.currentCamHeading);
+    const cosH = Math.cos(this.currentCamHeading);
+
+    // Forward vector is (-sinH, 0, -cosH). Camera is behind vehicle: (+sinH * dist, height, +cosH * dist)
     const targetCamPos = new THREE.Vector3(
-      pPos.x - sinY * dist,
+      pPos.x + sinH * dist,
       pPos.y + height,
-      pPos.z + cosY * dist
+      pPos.z + cosH * dist
     );
+    // Camera looks forward ahead of vehicle:
     const targetLookAt = new THREE.Vector3(
-      pPos.x + sinY * Math.abs(lookAhead),
+      pPos.x - sinH * Math.abs(lookAhead),
       pPos.y + 0.95,
-      pPos.z - cosY * Math.abs(lookAhead)
+      pPos.z - cosH * Math.abs(lookAhead)
     );
 
     if (this.screenShake > 0) {
@@ -1499,7 +1532,7 @@ class Game {
       if (this.miniMap) {
         this.miniMap.update(
           this.player.group.position,
-          this.player.steerAngle,
+          this.player.heading || this.player.steerAngle,
           this.player.speed,
           activeChourastas,
           this.traffic.vehicles,
