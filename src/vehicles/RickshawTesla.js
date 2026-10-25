@@ -897,24 +897,33 @@ export class RickshawTesla {
       this.battery = Math.max(0, this.battery - 0.015);
     }
 
-    // Steering: Left turns to negative X, Right turns to positive X
+    // Steering: Left turns to negative X, Right turns to positive X (Arcade snappiness matching baperrasta.com)
     let targetSteer = 0;
     if (input.left) targetSteer -= this.maxSteerAngle;
     if (input.right) targetSteer += this.maxSteerAngle;
 
-    this.steerAngle += (targetSteer - this.steerAngle) * this.steerSpeed * delta * 6;
-    this.forkGroup.rotation.y = -this.steerAngle * 0.95;
+    this.steerAngle += (targetSteer - this.steerAngle) * this.steerSpeed * delta * 8.5;
+    this.forkGroup.rotation.y = -this.steerAngle * 1.25;
 
-    // Lean into turns smoothly (Subtle, realistic, upright stance)
-    const targetTilt = -this.steerAngle * (this.speed / this.maxSpeed) * 0.10;
-    this.tilt += (targetTilt - this.tilt) * 6 * delta;
-    this.group.rotation.z = this.tilt;
+    // Authentic Baper Rasta 3-Wheeler Canopy Lean & Body Roll Sway!
+    const speedRatio = Math.min(1.2, Math.abs(this.speed) / 45);
+    const targetTilt = -this.steerAngle * (0.24 + speedRatio * 0.12);
+    this.tilt += (targetTilt - this.tilt) * 9.0 * delta;
 
-    // Pitch tilt when accelerating
-    const targetPitch = input.forward ? -Math.min(0.08, (this.speed / 60) * 0.07) : 0;
-    this.group.rotation.x += (targetPitch - this.group.rotation.x) * 6 * delta;
+    // Dynamic Heading Yaw: Body points organically into the turn/drift
+    const targetYaw = -this.steerAngle * 0.42;
+    this.group.rotation.y += (targetYaw - this.group.rotation.y) * 8.0 * delta;
 
-    // Bumpy road & footpath elevation
+    // Acceleration Squat & Braking Nose-Dive on Front Shocks
+    let targetPitch = 0;
+    if (isBoosting || input.forward) {
+      targetPitch = -Math.min(0.08, 0.03 + (this.speed / 60) * 0.05); // Rear squats on launch
+    } else if (input.backward) {
+      targetPitch = Math.min(0.08, 0.04 + (Math.abs(this.speed) / 40) * 0.04); // Front nose-dive on brake
+    }
+    this.group.rotation.x += (targetPitch - this.group.rotation.x) * 7.0 * delta;
+
+    // Organic Dhaka Asphalt Suspension Bounce & Vibration
     const absX = Math.abs(this.group.position.x);
     let surfaceHeight = 0;
     if (absX >= 13.0) {
@@ -924,8 +933,17 @@ export class RickshawTesla {
       const t = (absX - 12.4) / 0.6;
       surfaceHeight = 0.28 * t;
     }
-    const bump = Math.sin(Date.now() * 0.012) * (this.speed / 40) * 0.03;
-    this.group.position.y = surfaceHeight + bump;
+
+    const isMoving = Math.abs(this.speed) > 2;
+    const roadBounce = isMoving
+      ? (Math.sin(Date.now() * 0.016) * (Math.abs(this.speed) / 50) * 0.035 + Math.cos(Date.now() * 0.026) * 0.012)
+      : 0;
+    const rollWobble = isMoving
+      ? (Math.sin(Date.now() * 0.014) * (Math.abs(this.speed) / 50) * 0.014)
+      : 0;
+
+    this.group.rotation.z = this.tilt + rollWobble;
+    this.group.position.y = surfaceHeight + roadBounce;
 
     // Spin wheels
     const spin = (this.speed / 3.6) * delta * 4;
@@ -938,8 +956,8 @@ export class RickshawTesla {
     this.group.position.z -= moveZ;
 
     if (Math.abs(this.speed) > 0.5) {
-      const latSpeed = Math.max(9.0, Math.abs(this.speed) / 3.6);
-      this.group.position.x += this.steerAngle * latSpeed * delta * 1.9;
+      const latSpeed = Math.max(10.5, Math.abs(this.speed) / 3.6);
+      this.group.position.x += this.steerAngle * latSpeed * delta * 2.3;
     }
 
     // Check if player is near any active Chourasta intersection

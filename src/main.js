@@ -1471,25 +1471,25 @@ class Game {
           if (!this.lastChargeEffectTime || now - this.lastChargeEffectTime > 1200) {
             this.lastChargeEffectTime = now;
             this.sound.playChargingSound();
-            this.effects.showFloatingText('⚡ ব্যাটারি চার্জ হচ্ছে!', '#00f0ff', '24px');
+            this.effects.showFloatingText('⚡ অবৈধ কারেন্ট লাইন কানেক্টেড!', '#facc15', '24px');
           }
 
           if (prevBat < 98 && this.player.battery >= 99) {
             this.takaCollected += 1000;
-            this.effects.showFloatingText('🔋 ব্যাটারি ১০০% ফুল! +৳১,০০০', '#10b981', '28px');
-            this.hud.showSpeech('🔋 ব্যাটারি ১০০% চার্জ ফুল! নবাব এখন রকেটের মতো ছুটবে!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+            this.effects.showFloatingText('🔋 অবৈধ চার্জ ১০০% ফুল! +৳১,০০০', '#10b981', '28px');
+            this.hud.showSpeech('🔋 অবৈধ লাইন থেইকা ফুল চার্জ দিয়া দিছি মামা! নবাব এখন রকেটের মতো ছুটবে!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা', false);
             this.sound.playCashSound();
           }
         }
 
-        // Live Charging Station Distance Indicator (Matching screenshot!)
+        // Live Illegal Charging Point Distance Indicator (Matching baperrasta.com!)
         const nextChargeDist = this.charging.getNextStationDistance(pZ);
         const chargePill = document.getElementById('hud-charge-dist-pill');
         const chargeText = document.getElementById('hud-charge-dist-text');
         if (chargePill && chargeText) {
           if (nextChargeDist !== null && nextChargeDist < 350) {
             chargePill.style.display = 'flex';
-            chargeText.innerText = `চার্জ ${toBengaliNumber(nextChargeDist)} মি সামনে`;
+            chargeText.innerText = `অবৈধ চার্জ ${toBengaliNumber(nextChargeDist)} মি সামনে`;
           } else {
             chargePill.style.display = 'none';
           }

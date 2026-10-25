@@ -1279,22 +1279,38 @@ export class TextureFactory {
       ctx.fill();
     });
 
-    // Top banner: রাস্তার নবাব (RASTAR NOBAB)
+    // Top banner: বাপের রাস্তা (BAPER RASTA)
+    ctx.fillStyle = '#171717';
+    ctx.fillRect(plateX + 10, plateY + 10, plateW - 20, 38);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(plateX + 10, plateY + 10, plateW - 20, 38);
+
     ctx.textAlign = 'center';
-    ctx.font = '900 30px "Hind Siliguri", "Arial Black", sans-serif';
+    ctx.font = '900 28px "Hind Siliguri", "Arial Black", sans-serif';
     ctx.fillStyle = '#fef08a';
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 5;
-    ctx.strokeText('★ রাস্তার নবাব ★ RASTAR NOBAB ★', 256, plateY + 48);
-    ctx.fillText('★ রাস্তার নবাব ★ RASTAR NOBAB ★', 256, plateY + 48);
+    ctx.lineWidth = 4;
+    ctx.strokeText('❤ বাপের রাস্তা ❤', 256, plateY + 38);
+    ctx.fillText('❤ বাপের রাস্তা ❤', 256, plateY + 38);
 
-    // Bottom English/Banglish line: "Ami choto amk marben na"
-    ctx.font = 'bold 28px "Arial Black", sans-serif';
-    ctx.fillStyle = '#ffffff';
+    // Bottom yellow banner: "সুপারহিট! চলিতেছে প্রমোদে নয়না আপনার টাকা"
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(plateX + 10, plateY + 62, plateW - 20, 74);
     ctx.strokeStyle = '#dc2626';
-    ctx.lineWidth = 5;
-    ctx.strokeText('"Ami choto amk marben na"', 256, plateY + 104);
-    ctx.fillText('"Ami choto amk marben na"', 256, plateY + 104);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(plateX + 10, plateY + 62, plateW - 20, 74);
+
+    ctx.font = '900 24px "Hind Siliguri", "Arial Black", sans-serif';
+    ctx.fillStyle = '#dc2626';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.strokeText('✿ সুপারহিট! ✿', 256, plateY + 92);
+    ctx.fillText('✿ সুপারহিট! ✿', 256, plateY + 92);
+
+    ctx.font = 'bold 14px "Hind Siliguri", sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('চলিতেছে প্রমোদে নয়না আপনার টাকা', 256, plateY + 120);
 
     // 2. Upper arched canopy: Psychedelic Camo Fabric (Image 1 match)
     ctx.save();
