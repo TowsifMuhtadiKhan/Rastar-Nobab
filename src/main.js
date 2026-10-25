@@ -60,8 +60,8 @@ class Game {
 
   initThree() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xdce8ed);
-    this.scene.fog = new THREE.FogExp2(0xdce8ed, 0.0028);
+    this.scene.background = new THREE.Color(0xe6f0ef);
+    this.scene.fog = new THREE.Fog(0xe6f0ef, 70, 315);
 
     this.camera = new THREE.PerspectiveCamera(
       68, // Optimal panoramic arcade FOV: expansive view without edge fisheye distortion
@@ -85,7 +85,7 @@ class Game {
     this.renderer.toneMappingExposure = 1.25;
     this.container.appendChild(this.renderer.domElement);
 
-    const sunLight = new THREE.DirectionalLight(0xfff8e7, 2.6);
+    const sunLight = new THREE.DirectionalLight(0xfff5ea, 2.2);
     sunLight.position.set(30, 55, -20);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
@@ -100,7 +100,7 @@ class Game {
     this.scene.add(sunLight);
     this.sunLight = sunLight;
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x475569, 1.35);
+    const hemiLight = new THREE.HemisphereLight(0xe5f2ff, 0xb3aa72, 1.8);
     this.scene.add(hemiLight);
   }
 
@@ -782,12 +782,19 @@ class Game {
 
   updateCamera(delta) {
     const pPos = this.player.group.position;
+    const pSpeed = this.player.v !== undefined ? this.player.v : (this.player.speed / 3.6);
+    const steer = this.player.steer || 0;
+    const fx = this.player.fx !== undefined ? this.player.fx : -Math.sin(this.player.heading || 0);
+    const fz = this.player.fz !== undefined ? this.player.fz : -Math.cos(this.player.heading || 0);
+    const rx = this.player.rx !== undefined ? this.player.rx : Math.cos(this.player.heading || 0);
+    const rz = this.player.rz !== undefined ? this.player.rz : -Math.sin(this.player.heading || 0);
 
-    this.sunLight.position.set(pPos.x + 35, 65, pPos.z - 20);
-    this.sunLight.target.position.set(pPos.x, 0, pPos.z);
+    // Sunlight follows player
+    this.sunLight.position.set(pPos.x + 30, 55, pPos.z - 20);
+    this.sunLight.target.position.set(pPos.x, 0, pPos.z - 6);
     this.sunLight.target.updateMatrixWorld();
 
-    // Cinematic 360 Showcase Camera when on Start Screen: Beautiful, completely unobstructed view of Easybike
+    // Cinematic Showcase Orbit when on Start Screen
     if (!this.isRunning && document.getElementById('start-modal')?.style.display !== 'none') {
       const t = Date.now() * 0.00045;
       const radius = 3.5;
@@ -796,72 +803,59 @@ class Game {
         1.35 + Math.sin(t * 0.5) * 0.15,
         Math.cos(t) * radius
       );
-      const idleLookAt = new THREE.Vector3(2.8, 0.95, 0);
       this.camera.position.lerp(idleCamPos, 0.08);
-      this.camera.lookAt(idleLookAt);
+      this.camera.lookAt(new THREE.Vector3(2.8, 0.95, 0));
       return;
     }
 
-    // Camera view perspective based on user settings (Default is 1.8x zoomed in)
-    const zoom = this.cameraZoomFactor || 0.56;
-    let dist, height, lookAhead;
+    // Authentic Baper Rasta Drone Chase Camera
+    const isPortrait = window.innerWidth < 640 || window.innerHeight > window.innerWidth;
+    const baseFov = isPortrait ? 66 : 64;
+    const dist = (isPortrait ? 9.8 : 6.2) + Math.abs(pSpeed) * 0.08;
+    const height = (isPortrait ? 5.6 : 3.5) + Math.abs(pSpeed) * 0.04;
 
-    if (this.cameraViewMode === 'wide') {
-      dist = (10.0 + (this.player.speed / 50) * 1.5) * zoom;
-      height = (5.5 + (this.player.speed / 60) * 1.0) * zoom;
-      lookAhead = -26;
-    } else if (this.cameraViewMode === 'top') {
-      dist = 3.0 * zoom;
-      height = 12.0 * zoom;
-      lookAhead = -8;
-    } else {
-      // Normal dynamic chase: elevated commanding perspective so driver always has a crystal-clear, unobstructed view of the road
-      const isPortrait = window.innerWidth < 640 || window.innerHeight > window.innerWidth;
-      const baseDist = isPortrait ? 6.8 : 5.8;
-      const baseHeight = isPortrait ? 4.2 : 3.6;
-      const baseLook = isPortrait ? 20 : 18;
-
-      dist = (baseDist + (Math.abs(this.player.speed) / 50) * 1.0) * zoom;
-      height = (baseHeight + (Math.abs(this.player.speed) / 60) * 0.7) * Math.max(0.72, Math.min(1.0, zoom + 0.20));
-      lookAhead = baseLook;
-    }
-
-    // Smooth chase camera following vehicle road axis (0 or PI) during normal driving,
-    // and performing a cinematic 180° sweep during U-Turn!
-    const targetCamH = (this.player.isUTurning || this.player.isTurning)
-      ? this.player.heading 
-      : (this.player.baseHeading !== undefined ? this.player.baseHeading : 0);
-
-    if (this.currentCamHeading === undefined) this.currentCamHeading = targetCamH;
-    let diff = targetCamH - this.currentCamHeading;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    this.currentCamHeading += diff * Math.min(1.0, 7.5 * delta);
-
-    const sinH = Math.sin(this.currentCamHeading);
-    const cosH = Math.cos(this.currentCamHeading);
-
-    // Dynamic chase camera following full 360 heading angle & U-Turns!
+    // Target camera position: directly behind the rickshaw's 3D forward vector,
+    // with dynamic lateral steer offset matching Baper Rasta
     const targetCamPos = new THREE.Vector3(
-      pPos.x + sinH * dist,
+      pPos.x - fx * dist - rx * steer * 0.5,
       pPos.y + height,
-      pPos.z + cosH * dist
-    );
-    // Camera looks forward ahead of vehicle in direction of movement
-    const targetLookAt = new THREE.Vector3(
-      pPos.x - sinH * Math.abs(lookAhead),
-      pPos.y + 0.95,
-      pPos.z - cosH * Math.abs(lookAhead)
+      pPos.z - fz * dist - rz * steer * 0.5
     );
 
-    if (this.screenShake > 0) {
-      targetCamPos.x += (Math.random() - 0.5) * this.screenShake;
-      targetCamPos.y += (Math.random() - 0.5) * this.screenShake;
-      this.screenShake = Math.max(0, this.screenShake - delta * 1.8);
+    // Look-ahead target point
+    const targetLookAt = new THREE.Vector3(
+      pPos.x + fx * (isPortrait ? 12 : 7),
+      pPos.y + 0.95,
+      pPos.z + fz * (isPortrait ? 12 : 7)
+    );
+
+    if (!this.camPos) {
+      this.camPos = targetCamPos.clone();
+      this.camLookAt = targetLookAt.clone();
     }
 
-    this.camera.position.lerp(targetCamPos, Math.min(1.0, 14.0 * delta));
-    this.camera.lookAt(targetLookAt);
+    // Smooth exponential drone dampening (matching Baper Rasta Me(pos, target, 7, dt))
+    const posDecay = 1 - Math.exp(-7.2 * delta);
+    const lookDecay = 1 - Math.exp(-9.8 * delta);
+
+    this.camPos.lerp(targetCamPos, posDecay);
+    this.camLookAt.lerp(targetLookAt, lookDecay);
+
+    // Dynamic FOV speed rush (expands with speed & boost matching Baper Rasta)
+    const dynamicFov = baseFov + Math.abs(pSpeed) * 0.65 + (this.player.isBoosting ? 8 : 0);
+    this.camera.fov += (dynamicFov - this.camera.fov) * (1 - Math.exp(-4.5 * delta));
+    this.camera.updateProjectionMatrix();
+
+    // Screen Shake
+    let shakeX = 0, shakeY = 0;
+    if (this.screenShake > 0) {
+      shakeX = (Math.random() - 0.5) * this.screenShake;
+      shakeY = (Math.random() - 0.5) * this.screenShake;
+      this.screenShake = Math.max(0, this.screenShake - delta * 2.0);
+    }
+
+    this.camera.position.set(this.camPos.x + shakeX, this.camPos.y + shakeY, this.camPos.z);
+    this.camera.lookAt(this.camLookAt);
   }
 
   checkGameCollisions(delta) {

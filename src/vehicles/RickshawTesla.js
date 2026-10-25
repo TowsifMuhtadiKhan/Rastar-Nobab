@@ -6,25 +6,41 @@ export class RickshawTesla {
     this.scene = scene;
     this.group = new THREE.Group();
 
-    // Vehicle physics state
-    this.speed = 0;
-    this.maxSpeed = 36; // km/h (authentic easybike cruising speed)
-    this.boostMaxSpeed = 52;
-    this.acceleration = 18;
-    this.braking = 32;
-    this.friction = 12;
-    this.steerAngle = 0;
-    this.maxSteerAngle = 0.52;
-    this.steerSpeed = 3.2;
-    this.tilt = 0;
-    this.baseHeading = 0; // 0 = forward down highway (-Z), Math.PI = backward (+Z)
-    this.heading = 0; // True 3D heading angle (0 = forward down highway, PI = backward U-turn)
+    // Vehicle physics state (Matching authentic Baper Rasta parameters)
+    this.v = 0;            // Velocity in m/s (Baper Rasta convention)
+    this.speed = 0;        // km/h display
+    this.cruiseSpeed = 11.5; // 11.5 m/s (~41.4 km/h, matching Baper Rasta hr.cruise)
+    this.boostSpeed = 16.0;  // 16.0 m/s (~57.6 km/h, matching Baper Rasta hr.boost)
+    this.pedalSpeed = 5.0;   // 5.0 m/s (~18.0 km/h)
+    this.acc = 4.4;          // m/s^2 (matching Baper Rasta hr.acc)
+    this.accBoost = 6.8;     // m/s^2 (matching Baper Rasta hr.accBoost)
+    this.brakeRate = 9.5;    // m/s^2 (matching Baper Rasta hr.brake)
+    this.steer = 0;          // Steer input state (-1 to 1)
+    this.yaw = 0;            // True 3D yaw angle
+    this.yawRate = 0;
+    this.roll = 0;           // Suspension lean
+    this.pitch = 0;          // Launch squat / brake dive
+    this.sx = 0;             // Lateral slide velocity
+    this.sz = 0;             // Longitudinal slide velocity
+    this.vx = 0;             // Total velocity X
+    this.vz = 0;             // Total velocity Z
+    this.fx = 0;             // Forward vector X
+    this.fz = -1;            // Forward vector Z
+    this.rx = 1;             // Lateral vector X
+    this.rz = 0;             // Lateral vector Z
+    this.bumpY = 0;
+    this.baseHeading = 0;
+    this.heading = 0;
     this.isUTurning = false;
     this.uTurnTimer = 0;
     this.uTurnDuration = 0.75;
     this.uTurnDirection = 1;
     this.uTurnStartHeading = 0;
     this.uTurnTargetHeading = Math.PI;
+    this.maxSteerAngle = 0.65;
+    this.steerAngle = 0;
+    this.tilt = 0;
+    this.group.rotation.order = "YXZ";
 
     // Upgrades
     this.upgradeLevel = 1;
@@ -862,8 +878,8 @@ export class RickshawTesla {
 
   activateTurboBoost(duration = 2.8) {
     this.boostTimer = duration;
-    this.speed = Math.max(this.speed + 12, 44);
-    if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
+    this.v = Math.min(this.boostSpeed, Math.max(this.v + 4.0, 13.5));
+    this.speed = this.v * 3.6;
   }
 
   triggerUTurn(direction = 'right') {
@@ -872,9 +888,10 @@ export class RickshawTesla {
     this.uTurnTimer = 0;
     this.uTurnDuration = 0.75;
     this.uTurnDirection = direction === 'left' ? -1 : 1;
-    this.uTurnStartHeading = this.baseHeading;
-    this.uTurnTargetHeading = (Math.abs(this.baseHeading) < 0.5) ? Math.PI : 0;
-    this.speed = Math.max(20, Math.min(36, Math.abs(this.speed)));
+    this.uTurnStartHeading = this.yaw;
+    this.uTurnTargetHeading = this.yaw + (direction === 'left' ? -1 : 1) * Math.PI;
+    this.v = Math.max(7.5, Math.min(13.0, Math.abs(this.v)));
+    this.speed = this.v * 3.6;
     if (this.onTurnStart) {
       this.onTurnStart('uturn', { left: 'ইউ-টার্ন', right: 'ইউ-টার্ন' });
     }
@@ -894,190 +911,188 @@ export class RickshawTesla {
       }
     }
 
-    // Update active turbo boost timer
+    // Active turbo boost timer
     if (this.boostTimer > 0) {
       this.boostTimer -= delta;
     }
     const isBoosting = !!input.boost || (this.boostTimer > 0);
+    this.isBoosting = isBoosting;
 
-    const cruiseTarget = this.autoCruiseEnabled ? 28 : 0;
-    if (isBoosting) {
-      // TURBO NITRO OVERDRIVE
-      this.speed += this.acceleration * 2.5 * delta;
-      if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
-      this.battery = Math.max(0, this.battery - 0.05);
-    } else if (input.forward) {
-      this.speed += this.acceleration * 1.2 * delta;
-      if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
-      this.battery = Math.max(0, this.battery - 0.02);
-    } else if (input.backward) {
-      this.speed -= this.braking * delta;
-      if (this.speed < -12) this.speed = -12;
-    } else {
-      if (this.autoCruiseEnabled) {
-        // Guaranteed forward motion: never freeze in stop mode!
-        if (this.speed < cruiseTarget) {
-          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 1.2 * delta);
-        } else if (this.speed > this.maxSpeed) {
-          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.2 * delta);
-        }
+    // 1. Acceleration & Velocity (Matching Baper Rasta hr dynamics)
+    const isAccelerating = !!input.forward || isBoosting;
+    const isBraking = !!input.backward;
+    const targetV = isBoosting ? this.boostSpeed : (this.autoCruiseEnabled ? this.cruiseSpeed : (isAccelerating ? this.cruiseSpeed : 0));
+
+    if (isBraking) {
+      if (this.v > 0.2) {
+        this.v -= this.brakeRate * delta;
       } else {
-        if (this.speed > 0) {
-          this.speed = Math.max(0, this.speed - this.friction * delta);
-        } else if (this.speed < 0) {
-          this.speed = Math.min(0, this.speed + this.friction * delta);
-        }
+        this.v = Math.max(this.v - 3.2 * delta, -3.5); // Gentle reverse
       }
-      this.battery = Math.max(0, this.battery - 0.015);
+    } else if (isAccelerating || (this.autoCruiseEnabled && this.v < targetV)) {
+      if (this.v < 0) {
+        this.v += 7.0 * delta;
+      } else if (this.v < targetV) {
+        const curAcc = isBoosting ? this.accBoost : this.acc;
+        const dragFactor = 1 - Math.pow(Math.min(1.0, this.v / targetV), 2) * 0.75;
+        this.v += curAcc * dragFactor * delta;
+      }
+    } else {
+      // Natural aerodynamic rolling resistance
+      const sign = Math.sign(this.v);
+      const decel = (0.5 + 0.01 * this.v * this.v) * delta;
+      if (this.v > 0) {
+        this.v = Math.max(0, this.v - decel);
+      } else if (this.v < 0) {
+        this.v = Math.min(0, this.v + decel);
+      }
     }
 
-    // 1. Steering & Heading Controls
+    if (this.v > targetV && !isBoosting) {
+      this.v = Math.max(targetV, this.v - 4.0 * delta);
+    }
+    this.speed = this.v * 3.6; // km/h for HUD
+
+    // 2. Authentic Baper Rasta 3D Steering Physics:
     if (this.isUTurning) {
-      // 180° Power Drift U-Turn
       this.uTurnTimer += delta;
       const turnProgress = Math.min(1.0, this.uTurnTimer / this.uTurnDuration);
       const smoothProgress = 0.5 - 0.5 * Math.cos(turnProgress * Math.PI);
-      
-      this.heading = this.uTurnStartHeading + this.uTurnDirection * Math.PI * smoothProgress;
-      this.tilt = -this.uTurnDirection * 0.38 * Math.sin(smoothProgress * Math.PI);
-      this.forkGroup.rotation.y = -this.uTurnDirection * this.maxSteerAngle * 1.5;
-      
-      this.group.position.x += this.uTurnDirection * 10.5 * Math.sin(smoothProgress * Math.PI) * delta;
-      
-      const driftSpeed = (this.speed / 3.6) * delta;
-      this.group.position.z += -Math.cos(this.heading) * driftSpeed;
+      this.yaw = this.uTurnStartHeading + this.uTurnDirection * Math.PI * smoothProgress;
+      this.steer = -this.uTurnDirection;
+      this.roll = -this.uTurnDirection * 0.35 * Math.sin(smoothProgress * Math.PI);
 
       if (turnProgress >= 1.0) {
         this.isUTurning = false;
-        this.baseHeading = this.uTurnTargetHeading;
-        while (this.baseHeading > Math.PI) this.baseHeading -= Math.PI * 2;
-        while (this.baseHeading < -Math.PI) this.baseHeading += Math.PI * 2;
-        this.heading = this.baseHeading;
-        this.tilt = 0;
-        this.steerAngle = 0;
-        if (this.onTurnComplete) {
-          this.onTurnComplete('uturn', { name: 'ইউ-টার্ন মোড়' });
-        }
+        this.yaw = this.uTurnTargetHeading;
+        while (this.yaw > Math.PI) this.yaw -= Math.PI * 2;
+        while (this.yaw < -Math.PI) this.yaw += Math.PI * 2;
+        this.steer = 0;
+        this.roll = 0;
+        if (this.onTurnComplete) this.onTurnComplete('uturn', { name: 'ইউ-টার্ন মোড়' });
       }
     } else if (this.isTurning) {
-      // 90° Intersection Crossroad Turn Navigation
-      this.turnProgress += delta * 1.25;
+      this.turnProgress += delta * 1.35;
       const p = Math.min(1.0, this.turnProgress);
       const sign = (this.turnDirection === 'left') ? -1 : 1;
-
-      // Smooth sweeping arc into the crossroad
-      this.group.position.x += sign * 18.0 * (1.0 - p * 0.4) * delta;
-      this.group.position.z += -(this.speed / 3.6) * (1.0 - p * 0.7) * delta;
-
-      // Dynamic 90° yaw rotation
-      this.heading = this.baseHeading + sign * (Math.PI / 2) * Math.sin(p * Math.PI * 0.5);
-      this.tilt = -sign * Math.sin(p * Math.PI) * 0.20;
-      this.forkGroup.rotation.y = -sign * this.maxSteerAngle * 1.35;
+      this.yaw = this.baseHeading + sign * (Math.PI / 2) * Math.sin(p * Math.PI * 0.5);
+      this.roll = -sign * Math.sin(p * Math.PI) * 0.18;
+      this.steer = sign;
 
       if (this.turnProgress >= 1.0) {
         this.isTurning = false;
-        this.heading = this.baseHeading;
-        this.tilt = 0;
-        this.steerAngle = 0;
-        this.forkGroup.rotation.y = 0;
+        this.yaw = this.baseHeading;
+        this.steer = 0;
+        this.roll = 0;
         this.group.position.x = sign * 4.2;
         if (this.turnChourasta) {
-          this.group.position.z = this.turnChourasta.z - 36.0; // Advance past intersection
+          this.group.position.z = this.turnChourasta.z - 36.0;
         }
         if (this.onTurnComplete) {
           this.onTurnComplete(this.turnDirection, this.turnChourasta?.stationData);
         }
       }
     } else {
-      // Normal Driving with Immediate, Responsive Left / Right Steering
-      let targetSteer = 0;
-      if (input.left) targetSteer -= this.maxSteerAngle;
-      if (input.right) targetSteer += this.maxSteerAngle;
+      let targetSteerInput = 0;
+      if (input.left) targetSteerInput -= 1.0;
+      if (input.right) targetSteerInput += 1.0;
 
-      // Fast, responsive steering interpolation (snappy 14.0 rate)
-      this.steerAngle += (targetSteer - this.steerAngle) * 14.0 * delta;
+      // Exponential decay toward steer input with rate 9.0 (matching Baper Rasta Me(b.steer, e.steer, 9, t))
+      this.steer += (targetSteerInput - this.steer) * (1 - Math.exp(-9.0 * delta));
 
-      const forwardDirZ = (Math.cos(this.baseHeading) > 0) ? -1 : 1;
-      const steerDirX = (Math.cos(this.baseHeading) > 0) ? 1 : -1;
+      // Speed-dependent yaw authority (matching Baper Rasta: 2.6 * clamp(r/2, 0, 1) / (1 + r*0.07))
+      const r = Math.abs(this.v);
+      const speedAuthority = 2.6 * Math.min(1.0, Math.max(0, r / 2.0)) / (1 + r * 0.07);
+      const dirSign = this.v < -0.05 ? -1 : 1;
+      this.yawRate = -this.steer * speedAuthority * dirSign;
+      this.yaw += this.yawRate * delta;
 
-      const steerFactor = this.steerAngle / this.maxSteerAngle;
-
-      // Crisp lateral velocity: 13.5 m/s instant response to touch/keys
-      const lateralSpeed = 13.5;
-      this.group.position.x += steerDirX * steerFactor * lateralSpeed * delta;
-
-      // Forward travel along road
-      const forwardMove = (this.speed / 3.6) * delta;
-      this.group.position.z += forwardDirZ * forwardMove;
-
-      // If user is steering while stationary or slow, give gentle rolling momentum to maneuver around obstacles
-      if ((input.left || input.right) && Math.abs(this.speed) < 14) {
-        this.speed = Math.min(18, this.speed + 18.0 * delta);
+      // Gentle highway caster stabilization when driver releases steering
+      if (!input.left && !input.right) {
+        let normYaw = this.yaw;
+        while (normYaw > Math.PI) normYaw -= Math.PI * 2;
+        while (normYaw < -Math.PI) normYaw += Math.PI * 2;
+        if (Math.abs(normYaw) < 0.28) {
+          this.yaw += (0 - normYaw) * (1 - Math.exp(-3.5 * delta));
+        } else if (Math.PI - Math.abs(normYaw) < 0.28) {
+          const tYaw = normYaw > 0 ? Math.PI : -Math.PI;
+          this.yaw += (tYaw - normYaw) * (1 - Math.exp(-3.5 * delta));
+        }
       }
 
-      // Authentic 3-wheeler body slip yaw:
-      const targetBodyYaw = steerDirX * (-steerFactor * 0.20);
-      this.heading = this.baseHeading + targetBodyYaw;
+      // Suspension roll (matching Baper Rasta: b.steer * clamp(abs(v)/11, 0, 1) * 0.16)
+      const targetRoll = this.steer * Math.min(1.0, r / 11.0) * 0.16;
+      this.roll += (targetRoll - this.roll) * (1 - Math.exp(-6.0 * delta));
 
-      // Authentic Bangladeshi 3-Wheeler Body Roll & Suspension Lean
-      const speedMag = Math.abs(this.speed);
-      const speedRatio = Math.min(1.2, speedMag / 30.0);
-      const targetTilt = -steerFactor * (0.14 + speedRatio * 0.08);
-      this.tilt += (targetTilt - this.tilt) * 12.0 * delta;
-
-      // Front Wheel & Handlebar turn angle (turns with driver steering)
-      this.forkGroup.rotation.y = -this.steerAngle * 1.35;
+      // Suspension pitch: squats on launch / acceleration, dives on braking
+      let targetPitch = isBoosting ? 0.07 : (isAccelerating ? 0.03 : (isBraking ? -0.05 : 0));
+      this.pitch += (targetPitch - this.pitch) * (1 - Math.exp(-5.0 * delta));
     }
 
-    // Acceleration Squat & Braking Nose-Dive on Front Shocks
-    let targetPitch = 0;
-    if (isBoosting || input.forward) {
-      targetPitch = -Math.min(0.08, 0.03 + (this.speed / 60) * 0.05);
-    } else if (input.backward) {
-      targetPitch = Math.min(0.08, 0.04 + (Math.abs(this.speed) / 40) * 0.04);
-    }
-    this.group.rotation.x += (targetPitch - this.group.rotation.x) * 8.0 * delta;
+    // Normalized heading and vectors
+    this.heading = this.yaw;
+    this.steerAngle = this.steer * this.maxSteerAngle;
+    this.tilt = this.roll;
 
-    // Organic Dhaka Asphalt Suspension Bounce & Vibration
-    const absX = Math.abs(this.group.position.x);
-    let surfaceHeight = 0;
-    if (absX >= 13.0) {
-      surfaceHeight = 0.28;
-    } else if (absX > 12.4) {
-      const t = (absX - 12.4) / 0.6;
-      surfaceHeight = 0.28 * t;
-    }
+    // Set forward & lateral unit vectors (Baper Rasta setFrame)
+    const sinY = Math.sin(this.yaw);
+    const cosY = Math.cos(this.yaw);
+    this.fx = -sinY;
+    this.fz = -cosY;
+    this.rx = cosY;
+    this.rz = -sinY;
 
-    const isMoving = Math.abs(this.speed) > 2;
-    const roadBounce = isMoving
-      ? (Math.sin(Date.now() * 0.016) * (Math.abs(this.speed) / 50) * 0.035 + Math.cos(Date.now() * 0.026) * 0.012)
-      : 0;
-    const rollWobble = isMoving
-      ? (Math.sin(Date.now() * 0.014) * (Math.abs(this.speed) / 50) * 0.014)
-      : 0;
+    // Lateral slide damping
+    const slideDecay = Math.exp(-5.0 * delta);
+    this.sx *= slideDecay;
+    this.sz *= slideDecay;
 
-    // 3D Vehicle World Orientation
-    this.group.rotation.y = this.heading;
-    this.group.rotation.z = this.tilt + rollWobble;
-    this.group.position.y = surfaceHeight + roadBounce;
+    // Total velocity vector
+    this.vx = this.fx * this.v + this.sx;
+    this.vz = this.fz * this.v + this.sz;
 
-    // Spin wheels with vehicle velocity
-    const spin = (this.speed / 3.6) * delta * 4;
+    this.group.position.x += this.vx * delta;
+    this.group.position.z += this.vz * delta;
+
+    // Front Wheel & Handlebars turn with steer
+    this.forkGroup.rotation.y = -this.steer * 0.72;
+
+    // Wheels spin with forward velocity
+    const spin = this.v * delta * 4.0;
     this.frontWheel.rotation.x += spin;
     this.leftRearWheel.rotation.x += spin;
     this.rightRearWheel.rotation.x += spin;
 
-    // Outer Street & Sidewalk Boundaries
+    // Sidewalk curb height and road bounce
+    const absX = Math.abs(this.group.position.x);
+    let surfaceY = 0;
+    if (absX >= 13.0) {
+      surfaceY = 0.20; // Footpath elevation
+    } else if (absX > 12.3) {
+      surfaceY = 0.20 * ((absX - 12.3) / 0.7);
+    }
+
+    const isMoving = Math.abs(this.v) > 0.5;
+    const roadBounce = isMoving
+      ? (Math.sin(Date.now() * 0.016) * (Math.abs(this.v) / 14) * 0.025)
+      : 0;
+
+    // 3D Vehicle World Transform: Order YXZ matching Baper Rasta
+    this.group.rotation.order = "YXZ";
+    this.group.rotation.set(this.pitch, this.yaw, this.roll);
+    this.group.position.y = surfaceY + roadBounce;
+
+    // Outer Road Boundaries
     const maxBoundX = isAtChourasta ? 36.0 : 18.0;
     if (this.group.position.x > maxBoundX) {
       this.group.position.x = maxBoundX;
-      this.speed = Math.max(0, this.speed - this.friction * delta);
+      this.v = Math.max(0, this.v - 4.0 * delta);
     } else if (this.group.position.x < -maxBoundX) {
       this.group.position.x = -maxBoundX;
-      this.speed = Math.max(0, this.speed - this.friction * delta);
+      this.v = Math.max(0, this.v - 4.0 * delta);
     }
 
-    // Roundabout island physical repulsion at (0, 0, ch.z)
+    // Roundabout island repulsion
     if (isAtChourasta && currentChourasta) {
       const dx = this.group.position.x;
       const dz = this.group.position.z - currentChourasta.z;
@@ -1086,7 +1101,7 @@ export class RickshawTesla {
         const pushAngle = Math.atan2(dz, dx);
         this.group.position.x = Math.cos(pushAngle) * 2.4;
         this.group.position.z = currentChourasta.z + Math.sin(pushAngle) * 2.4;
-        this.speed *= 0.85;
+        this.v *= 0.85;
         if (this.onRoundaboutBump) this.onRoundaboutBump();
       }
     }
