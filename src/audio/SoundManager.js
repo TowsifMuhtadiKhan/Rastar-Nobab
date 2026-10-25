@@ -1,0 +1,437 @@
+// Procedural Web Audio API sound generator with soft, smooth, ear-friendly tones
+// Includes a DynamicsCompressorNode to prevent harsh clipping or ear fatigue.
+
+export class SoundManager {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.compressor = null;
+    this.isMuted = false;
+    this.volume = 0.5; // Smooth, ear-comfortable default (50%)
+
+    // Motor oscillators & gains
+    this.motorOsc = null;
+    this.motorSubOsc = null;
+    this.motorGain = null;
+    this.isMotorRunning = false;
+
+    // Viral Bengali Satirical Meme Quotes
+    this.quotes = [
+      'আমি ছোট আমাকে মারবেন না (Ami choto amk marben na)!',
+      'আমার কোনো দোষ নাই মামা!',
+      'গতি বাড়ে, চার্জও যায় মামা!',
+      'রাস্তা কি তোর বাপের?!',
+      'চা খাওয়ার টাকাটা দিয়া যান মামা!',
+      'আমি ঠিকই চলছিলাম, রাস্তাটাই তো উল্টা ছিল!',
+      'ভিডিও কইরেন না ভাই, ফেসবুকে দিয়েন না!',
+      'আইছে আমার দেশি টেসলা!',
+      'কানের পর্দা ফাটায়ে দিলো রে!',
+      'খিচুড়ি খাইতে ইউরোপ যাই!',
+      '৫০০ টাকা জরিমানা বাইর কর!',
+      'বাঁশের রড দিয়া ব্রিজ বানাইছি!',
+      'বালিশ তুলতে ৭০০০ টাকা লাগে!'
+    ];
+
+    // Authentic Auto-Rickshaw Pep-Pep Horn
+    this.pepPepBuffer = null;
+    this.rawPepPepData = null;
+    this.pepPepAudio = (typeof window !== 'undefined') ? new Audio('/audio/pep_pep_horn.wav') : null;
+    if (this.pepPepAudio) this.pepPepAudio.preload = 'auto';
+
+    this.preloadAutoHorn();
+  }
+
+  async preloadAutoHorn() {
+    if (typeof window === 'undefined') return;
+    try {
+      const res = await fetch('/audio/pep_pep_horn.wav');
+      if (res.ok) this.rawPepPepData = await res.arrayBuffer();
+
+      if (this.ctx && !this.pepPepBuffer) {
+        this.decodeAutoHorn();
+      }
+    } catch (e) {
+      console.warn('Preload pep pep horn failed:', e);
+    }
+  }
+
+  async decodeAutoHorn() {
+    if (!this.ctx || this.isLoadingHorn) return;
+    this.isLoadingHorn = true;
+    try {
+      if (this.rawPepPepData && !this.pepPepBuffer) {
+        const copy = this.rawPepPepData.slice(0);
+        this.pepPepBuffer = await this.ctx.decodeAudioData(copy);
+      }
+    } catch (e) {
+      console.warn('Decode pep pep horn error:', e);
+    } finally {
+      this.isLoadingHorn = false;
+    }
+  }
+
+  init() {
+    if (this.ctx) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
+
+      // Dynamics Compressor: Prevents sudden harsh volume peaks or ear discomfort
+      this.compressor = this.ctx.createDynamicsCompressor();
+      this.compressor.threshold.setValueAtTime(-24, this.ctx.currentTime);
+      this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
+      this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
+      this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+
+      // Master Gain Node for smooth, ear-pleasing volume control
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+
+      this.masterGain.connect(this.compressor);
+      this.compressor.connect(this.ctx.destination);
+
+      if (this.rawAutoHornData && !this.autoHornBuffer) {
+        this.decodeAutoHorn();
+      }
+    } catch (e) {
+      console.warn('AudioContext init error:', e);
+    }
+  }
+
+  ensureContext() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    if (!this.autoHornBuffer && !this.isLoadingHorn) {
+      if (this.rawAutoHornData) {
+        this.decodeAutoHorn();
+      } else {
+        this.preloadAutoHorn();
+      }
+    }
+  }
+
+  setVolume(volPercent) {
+    this.volume = Math.max(0, Math.min(1, volPercent / 100));
+    if (this.masterGain && this.ctx) {
+      const targetGain = this.isMuted ? 0 : this.volume;
+      this.masterGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  // Soft, smooth electric purr (No harsh sawtooth waves!)
+  startMotorSound() {
+    if (!this.ctx || this.isMotorRunning) return;
+    try {
+      this.motorOsc = this.ctx.createOscillator();
+      this.motorSubOsc = this.ctx.createOscillator();
+      this.motorGain = this.ctx.createGain();
+
+      // Use gentle sine & warm triangle waves instead of buzzy sawtooth
+      this.motorOsc.type = 'sine';
+      this.motorSubOsc.type = 'triangle';
+
+      this.motorOsc.frequency.setValueAtTime(65, this.ctx.currentTime);
+      this.motorSubOsc.frequency.setValueAtTime(32.5, this.ctx.currentTime);
+
+      // Warm lowpass filter to remove any high-frequency shrillness
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(220, this.ctx.currentTime);
+
+      // Subtle, background-level volume
+      this.motorGain.gain.setValueAtTime(0.012, this.ctx.currentTime);
+
+      this.motorOsc.connect(filter);
+      this.motorSubOsc.connect(filter);
+      filter.connect(this.motorGain);
+      this.motorGain.connect(this.masterGain);
+
+      this.motorOsc.start();
+      this.motorSubOsc.start();
+      this.isMotorRunning = true;
+    } catch (e) {
+      console.warn('Audio motor start error:', e);
+    }
+  }
+
+  stopMotorSound() {
+    if (!this.isMotorRunning) return;
+    try {
+      if (this.motorGain && this.ctx) {
+        this.motorGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08);
+      }
+      setTimeout(() => {
+        try {
+          this.motorOsc?.stop();
+          this.motorSubOsc?.stop();
+          this.motorOsc?.disconnect();
+          this.motorSubOsc?.disconnect();
+        } catch (e) {}
+        this.isMotorRunning = false;
+      }, 100);
+    } catch (e) {
+      this.isMotorRunning = false;
+    }
+  }
+
+  updateMotor(speedNormalized) {
+    if (!this.ctx || !this.motorOsc || !this.isMotorRunning || this.isMuted) return;
+    try {
+      // Gentle pitch rise: 65Hz to 160Hz (warm electric motor hum)
+      const freq = 65 + speedNormalized * 95;
+      const subFreq = 32.5 + speedNormalized * 47.5;
+      // Soft volume scaling: 0.012 idle up to 0.032 max speed
+      const vol = 0.012 + speedNormalized * 0.02;
+
+      this.motorOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.08);
+      this.motorSubOsc.frequency.setTargetAtTime(subFreq, this.ctx.currentTime, 0.08);
+      this.motorGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.08);
+    } catch (e) {}
+  }
+
+  // Authentic Auto-Rickshaw "Pep-Pep!" (প্যাঁক-প্যাঁক / পিপ-পিপ) Double-Honk Horn
+  playPepPepHorn() {
+    this.ensureContext();
+    if (this.isMuted) return;
+
+    // 1. Primary: Instant, zero-latency WebAudio synthetic "Pep-Pep!" double honk
+    if (this.ctx && this.masterGain) {
+      try {
+        const now = this.ctx.currentTime;
+        const volume = Math.min(1.0, this.volume * 1.6);
+
+        // Burst 1: First "PEP!" (0.00s -> 0.10s)
+        this.triggerSingleHonkBurst(now, 0.10, 435, 545, volume);
+
+        // Short Pause: (50ms gap between honks)
+
+        // Burst 2: Second "PEP!" (0.15s -> 0.28s)
+        this.triggerSingleHonkBurst(now + 0.15, 0.13, 442, 554, volume);
+        return;
+      } catch (err) {}
+    }
+
+    // 2. Preloaded studio audio fallback
+    if (this.pepPepAudio) {
+      try {
+        this.pepPepAudio.currentTime = 0;
+        this.pepPepAudio.volume = Math.min(1.0, this.volume * 1.6);
+        this.pepPepAudio.play().catch(() => {});
+      } catch (e) {}
+    }
+  }
+
+  // Alias for backwards compatibility with any trigger calls
+  playHydraulicHorn() {
+    this.playPepPepHorn();
+  }
+
+  // Helper: Generates a single metallic "PEP!" burst with dual disc harmonics and bite
+  triggerSingleHonkBurst(startTime, duration, f1, f2, volume) {
+    if (!this.ctx || !this.masterGain) return;
+
+    // Dual disc frequencies (characteristic Bangladeshi electric auto-rickshaw horn)
+    [f1, f2].forEach((freq) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      // Bandpass filter to sculpt punchy metallic horn resonance (~1450 Hz)
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1450, startTime);
+      filter.Q.setValueAtTime(1.8, startTime);
+
+      // Sharp, punchy ADSR envelope for instant "PEP" impact
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.linearRampToValueAtTime(0.32 * volume, startTime + 0.008);
+      gain.gain.setValueAtTime(0.32 * volume, startTime + duration - 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.01);
+    });
+
+    // High harmonic metallic disc click/bite
+    const biteOsc = this.ctx.createOscillator();
+    const biteGain = this.ctx.createGain();
+    biteOsc.type = 'square';
+    biteOsc.frequency.setValueAtTime(1880, startTime);
+
+    biteGain.gain.setValueAtTime(0.06 * volume, startTime);
+    biteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.04);
+
+    biteOsc.connect(biteGain);
+    biteGain.connect(this.masterGain);
+
+    biteOsc.start(startTime);
+    biteOsc.stop(startTime + 0.05);
+  }
+
+  // Charming, sweet Rickshaw Bell chime ("টুং-টুং")
+  playRickshawBell() {
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+    try {
+      const now = this.ctx.currentTime + 0.06;
+      [1480, 1960].forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.09);
+
+        gain.gain.setValueAtTime(0.06, now + i * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now + i * 0.09);
+        osc.stop(now + i * 0.09 + 0.24);
+      });
+    } catch (e) {}
+  }
+
+  // Soft, satisfying collision bump (warm low-end thud, not piercing static)
+  playCrashSound(intensity = 1.0) {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.22);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      // Pinkish/brownish noise for a softer, warmer thud
+      let last = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = (last + (0.02 * white)) / 1.02;
+        last = data[i];
+        data[i] *= 3.5;
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      // Lowpass filter to keep only the low-end thud
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(320 * Math.min(intensity, 1.2), now);
+      filter.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(Math.min(0.20 * intensity, 0.25), now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      noise.start(now);
+    } catch (e) {}
+  }
+
+  // Pleasant, gentle coin pickup chime
+  playPartPickupSound() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const notes = [392, 523, 659]; // G4, C5, E5 (sweet major chord)
+      notes.forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.04);
+
+        gain.gain.setValueAtTime(0.08, now + i * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now + i * 0.04);
+        osc.stop(now + i * 0.04 + 0.16);
+      });
+    } catch (e) {}
+  }
+
+  // Soft, melodic Taka chime
+  playTakaChingSound(value = 500) {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      const baseFreq = value === 2000 ? 1046 : (value === 1000 ? 880 : 784);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, now);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch (e) {}
+  }
+
+  // Gentle aerodynamic boost whoosh
+  playTurboSound() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(380, now + 0.35);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(600, now);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } catch (e) {}
+  }
+
+  // Natural Bengali Meme Quote (Visual text display, no robotic TTS voice)
+  shoutBengaliQuote(quoteOverride = null) {
+    if (this.isMuted) return '';
+    return quoteOverride || this.quotes[Math.floor(Math.random() * this.quotes.length)];
+  }
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    if (this.masterGain && this.ctx) {
+      const targetGain = this.isMuted ? 0 : this.volume;
+      this.masterGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.04);
+    }
+    return this.isMuted;
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "tesla-game",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "baper-rasta",
+    "bangladeshi-tesla",
+    "auto-rickshaw",
+    "dhaka-game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "ffmpeg-static": "^5.3.0",
+    "play-dl": "^1.9.7",
+    "three": "^0.186.1",
+    "vite": "^8.3.5"
+  }
+}

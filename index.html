@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>রাস্তার নবাব · Rastar Nobab | Dhaka 3D Highway</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%2280%22 font-size=%2280%22>🛺</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700;800&family=Noto+Serif+Bengali:wght@500;600;700;800;900&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- Three.js 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- 2D Comic Floating Text Layer -->
+  <div id="floating-ui-layer"></div>
+
+  <!-- In-Game UI Overlay (Clean, Non-Overlapping Dhaka Arcade HUD) -->
+  <div id="ui-root">
+    <!-- 1. Top HUD Master Stack: Zero-Overlap Flow Architecture -->
+    <div class="hud-top-stack">
+      <div class="top-hud">
+        <!-- Top-Left: তাণ্ডব স্কোর (Chaos Score) -->
+        <div class="hud-score-card">
+          <span class="hsc-flame">🔥</span>
+          <div class="hsc-info">
+            <span class="hsc-title">তাণ্ডব স্কোর</span>
+            <span class="hsc-val" id="hud-damage">৳ ০</span>
+          </div>
+        </div>
+
+        <!-- Top-Right: Battery & Quick Controls -->
+        <div class="hud-top-right">
+          <div class="hud-battery-box">
+            <div class="hbb-label">
+              <span>⚡ ব্যাটারি</span>
+              <span id="hud-battery-text">১০০%</span>
+            </div>
+            <div class="hbb-track">
+              <div class="hbb-fill" id="hud-battery-fill"></div>
+            </div>
+          </div>
+
+          <button id="btn-mute" class="hud-circle-btn" title="সাউন্ড চালু/বন্ধ">🔊</button>
+          <button id="btn-pause" class="hud-circle-btn hud-pause-btn" title="খেলা বিরতি (PAUSE)">⏸</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Highway GPS Station Tracker (Dedicated Center Pill, Guaranteed Non-Colliding!) -->
+      <div id="route-map-bar" class="hud-gps-card">
+        <span class="hrc-icon">🧭</span>
+        <span class="hrc-current" id="route-current-station">আগারগাঁও</span>
+        <span class="hrc-arrow">➔</span>
+        <span class="hrc-next" id="route-next-station">বিজয় সরণি (৩৫ মি)</span>
+        <div class="hrc-meter">
+          <div id="route-progress-fill" class="hrc-meter-fill"></div>
+        </div>
+      </div>
+
+      <!-- Row 3: Floating VIP Target Scanner (Clean Flow Below Row 2, Zero Overlap!) -->
+      <div id="vip-tracker-badge" class="hud-vip-radar" style="display: none;">
+        <div class="vip-pulse-ring"></div>
+        <div class="vip-text-wrap">
+          <span class="vip-label">🚨 ভিআইপি কনভয় শিকার</span>
+          <span class="vip-dist" id="vip-tracker-text">১২২ মি</span>
+        </div>
+      </div>
+
+      <!-- Row 4: Shouting Bengali Speech Bubble (Clean Flow Below VIP Scanner!) -->
+      <div id="speech-bubble">
+        <span id="speech-text">রাস্তার নবাব নামল রে! সাইড দেন!</span>
+      </div>
+
+      <!-- Row 5: Wrong Way Bonus Alert -->
+      <div id="wrong-way-badge" style="display: none;">
+        <span>⛔ উল্টাপথ বোনাস ৩×</span>
+      </div>
+    </div>
+
+    <!-- 5. Bottom-Left Dashboard Cluster: Authentic Circular Racing Speedometer & Zoom -->
+    <div class="hud-bottom-left-cluster">
+      <div class="hud-speedometer-gauge">
+        <svg class="speedo-dial-svg" viewBox="0 0 100 100">
+          <circle class="speedo-track" cx="50" cy="50" r="38" />
+          <circle class="speedo-progress" id="speedo-progress-arc" cx="50" cy="50" r="38" />
+        </svg>
+
+        <!-- Sweeping Dial Needle -->
+        <div class="speedo-needle-pivot" id="speedo-needle">
+          <div class="speedo-needle-line"></div>
+        </div>
+
+        <!-- Center Digital Speed & Gear Display -->
+        <div class="speedo-center-readout">
+          <div class="speedo-val" id="hud-speed">০</div>
+          <div class="speedo-unit">কিমি/ঘণ্টা</div>
+          <div class="speedo-gear-pill" id="hud-gear">গিয়ার ১</div>
+        </div>
+
+        <!-- Speedometer Dial Tick Labels -->
+        <span class="speedo-tick t-0">০</span>
+        <span class="speedo-tick t-30">৩০</span>
+        <span class="speedo-tick t-60">৬০</span>
+        <span class="speedo-tick t-90">৯০</span>
+      </div>
+
+      <div class="hud-zoom-ctrl">
+        <button id="btn-zoom-out" class="zoom-btn" title="Zoom Out">➖</button>
+        <span class="zoom-label" id="zoom-level-text">১.৮×</span>
+        <button id="btn-zoom-in" class="zoom-btn" title="Zoom In">➕</button>
+      </div>
+    </div>
+
+    <!-- 5. Bottom Controls: Touch Steering, 12V Horn, Turbo & Brake (Safely Pinned Above Ticker) -->
+    <div class="bottom-controls">
+      <!-- Steering Paddles (Left) -->
+      <div class="ctrl-group">
+        <button class="paddle-btn" id="btn-left" aria-label="Steer Left">
+          <span>◀</span>
+        </button>
+        <button class="paddle-btn" id="btn-right" aria-label="Steer Right">
+          <span>▶</span>
+        </button>
+      </div>
+
+      <!-- Center: 12V Authentic Auto-Rickshaw Horn -->
+      <button class="hud-horn-btn" id="btn-horn">
+        <div class="horn-icon-ring">📢</div>
+        <div class="horn-text-wrap">
+          <div class="horn-main-text">নবাবী হর্ন</div>
+          <span class="hotkey-pill">SPACE</span>
+        </div>
+      </button>
+
+      <!-- Right: Turbo Nitro & Brake -->
+      <div class="ctrl-group">
+        <button class="action-btn boost-btn" id="btn-boost" title="Turbo Boost">
+          <span>⚡</span>
+          <small>টার্বো</small>
+        </button>
+        <button class="action-btn brake-btn" id="btn-brake" title="Brake / Reverse">
+          <span>🛑</span>
+          <small>ব্রেক</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start Screen: Dead-Center In The Middle of the Screen, Clean & Original -->
+  <div class="start-screen-overlay" id="start-modal">
+    <!-- Top-Right Utility Actions -->
+    <div class="start-top-actions">
+      <button class="start-nav-btn" id="btn-open-darbar">
+        <span>🏆</span> সেরা রেকর্ড
+      </button>
+      <button class="start-nav-btn" id="btn-open-options">
+        <span>⚙️</span> সেটিংস
+      </button>
+    </div>
+
+    <!-- Dead-Center Hero Card (Middle of Screen) -->
+    <div class="game-brand-card">
+      <div class="brand-top-badges">
+        <span class="brand-badge-tag">⚡ DHAKA 3D HIGHWAY</span>
+        <span class="brand-live-badge">🟢 লাইভ ঢাকা মিশন</span>
+      </div>
+
+      <h1 class="brand-title">
+        <span class="title-bengali">রাস্তার নবাব</span>
+        <span class="title-english">RASTAR NOBAB</span>
+      </h1>
+
+      <p class="brand-subtitle">
+        "ঢাকার ব্যস্ত রাজপথের আসল রাজা — রাস্তার নবাব!"
+      </p>
+
+      <div class="brand-features">
+        <span class="feat-pill">⚡ খাঁটি দেশি ব্যাটারি</span>
+        <span class="feat-pill">📢 বিকট ১২V হর্ন</span>
+        <span class="feat-pill">🪧 "Ami choto amk marben na"</span>
+      </div>
+
+      <!-- Action Row: Start Button and High Score Side-by-Side (Matching user screenshot!) -->
+      <div class="start-cta-row">
+        <button class="btn-primary-start" id="btn-start-game">
+          <span class="btn-start-icon">⚡</span>
+          <span class="btn-start-text">খেলা শুরু করুন</span>
+          <span class="btn-start-arrow">➔</span>
+        </button>
+
+        <div class="record-box-side">
+          <span class="record-label">🏆 আপনার সর্বোচ্চ রেকর্ড</span>
+          <span class="record-val" id="start-record-val">৳ ২৫,৪০০</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Footer Dock: Controls Guide & How to Play Button -->
+    <footer class="start-footer-bar">
+      <div class="controls-pill">
+        <span class="key-tag">W A S D</span> চালান &nbsp;•&nbsp;
+        <span class="key-tag">SPACE</span> হর্ন &nbsp;•&nbsp;
+        <span class="key-tag">SHIFT</span> টার্বো &nbsp;•&nbsp;
+        <span class="key-tag">➖ / ➕</span> জুম
+      </div>
+
+      <button class="btn-how-to-play" id="btn-open-rules">
+        <span>📖 খেলার নিয়মাবলী</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- Modal: খেলার নিয়মাবলী (How to Play Popup) -->
+  <div class="modal-overlay" id="rules-modal" style="display: none;">
+    <div class="custom-dialog-card">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-crest">📖</span>
+          <div>
+            <h2 class="dialog-title">রাস্তার নবাব · নিয়মাবলী</h2>
+            <div class="dialog-sub">ঢাকার রাজপথে দাপিয়ে চলার ৪টি মোক্ষম নিয়ম</div>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-rules">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="rules-modal-grid">
+          <div class="rule-card">
+            <div class="rc-icon rc-red">💥</div>
+            <div class="rc-text">
+              <h4>১. তাণ্ডব ও স্কোর</h4>
+              <p>গাড়ি, ব্যারিকেড ও ট্রাফিক ড্রাম গুঁড়িয়ে তাণ্ডব স্কোর বাড়ান। যত তাণ্ডব, তত রেকর্ড!</p>
+            </div>
+          </div>
+
+          <div class="rule-card">
+            <div class="rc-icon rc-blue">📢</div>
+            <div class="rc-text">
+              <h4>২. ১২V নবাবী হর্ন (SPACE)</h4>
+              <p>আসল ঢাকাইয়া অটো হর্নের তীব্র শব্দে ট্রাফিক ও ফুটপাতের পথচারীদের সাইড দিন।</p>
+            </div>
+          </div>
+
+          <div class="rule-card">
+            <div class="rc-icon rc-green">⚡</div>
+            <div class="rc-text">
+              <h4>৩. টার্বো বুস্ট (SHIFT)</h4>
+              <p>রকেটের গতিতে সুপারচার্জড হয়ে ভিআইপি কনভয়কে পিছে ফেলে এগিয়ে যান।</p>
+            </div>
+          </div>
+
+          <div class="rule-card">
+            <div class="rc-icon rc-yellow">🛣️</div>
+            <div class="rc-text">
+              <h4>৪. ফুটপাত ড্রাইভিং</h4>
+              <p>রাস্তায় বেশি জ্যাম থাকলে চড়ে বসুন ফুটপাতে! চায়ের টং আর দোকানদারদের এড়িয়ে ওভারটেক করুন।</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-controls-box">
+          <div class="rcb-title">🎮 গেম কন্ট্রোলস</div>
+          <div class="rcb-row"><b>কিবোর্ড:</b> W/A/S/D স্টিয়ারিং • SPACE হর্ন • SHIFT টার্বো • M সাউন্ড • মাউস হুইল জুম</div>
+          <div class="rcb-row"><b>মোবাইল / টাচ:</b> অন-স্ক্রিন স্টিয়ারিং প্যাডেল, হর্ন ও টার্বো বাটন</div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button class="btn-dialog-primary" id="btn-close-rules-2">বুঝেছি, খেলা শুরু করি ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen: Authentic "ঢাকা এক্সপ্রেস" Newspaper Modal -->
+  <div class="modal-overlay" id="gameover-modal" style="display: none;">
+    <div class="newspaper-container" id="newspaper-container">
+      <!-- Newspaper Header Masthead -->
+      <div class="np-topbar">
+        <div class="np-box-side">
+          <div class="np-box-label">যানজট</div>
+          <div class="np-box-val">১০/১০</div>
+        </div>
+        <div class="np-masthead-center">
+          <h1 class="np-title">ঢাকা এক্সপ্রেস</h1>
+        </div>
+        <div class="np-box-side">
+          <div class="np-box-label">বায়ুমান</div>
+          <div class="np-box-val">অস্বাস্থ্যকর</div>
+        </div>
+      </div>
+
+      <!-- Newspaper Date Bar with Double Border -->
+      <div class="np-datebar">
+        <span class="np-date-text">শনিবার, ২৪ অক্টোবর ২০২৬ · সংখ্যা ২</span>
+        <span class="np-tagline">ঢাকার রাজপথের দৈনিক ট্রাফিক ও তাণ্ডব বুলেটিন</span>
+        <span class="np-price-text">মূল্য: ১০ টাকা</span>
+      </div>
+
+      <!-- Main News Headline Section -->
+      <div class="np-headline-row">
+        <div class="np-headline-tag">■ ব্রেকিং নিউজ</div>
+        <h2 class="np-headline" id="np-headline-text">অটো নামল, কিছুই ভাঙল না, পাঠকেরা হতাশ</h2>
+      </div>
+
+      <!-- Newspaper Body Grid (Two Columns) -->
+      <div class="np-grid">
+        <!-- Left Column: Incident Photo Frame -->
+        <div class="np-col-photo">
+          <div class="np-photo-frame">
+            <canvas id="np-photo-canvas" width="380" height="210"></canvas>
+            <div class="np-damage-badge" id="np-damage-badge">
+              <div class="np-badge-title">মোট তাণ্ডব স্কোর</div>
+              <div class="np-badge-val" id="np-badge-val">৳ ০</div>
+            </div>
+          </div>
+          <div class="np-photo-caption" id="np-photo-caption-text">
+            ঘটনাস্থলের ছবি তুলেছেন একজন পথচারী, যিনি সাহায্য না করে ভিডিও করছিলেন
+          </div>
+        </div>
+
+        <!-- Right Column: Viral Memes & Article -->
+        <div class="np-col-news">
+          <!-- Dashed Coupon Box with Scissors -->
+          <div class="np-coupon-box">
+            <div class="np-coupon-top">
+              <span class="np-coupon-pill" id="np-coupon-pill">তাণ্ডব স্কোর শূন্য</span>
+              <span class="np-coupon-scissors">✂</span>
+            </div>
+            <div class="np-coupon-title" id="np-coupon-title">দেশ আপনার কাছে হতাশ</div>
+            <div class="np-coupon-sub" id="np-coupon-sub" style="display: none;"></div>
+          </div>
+
+          <!-- Traffic Sergeant / Citizen Quote -->
+          <div class="np-quote-box">
+            <div class="np-quote-mark">“</div>
+            <div class="np-quote-content">
+              <div class="np-quote-text" id="np-quote-text">এত ভদ্র অটো জীবনে দেখি নাই। সন্দেহ লাগতেছে।</div>
+              <div class="np-quote-author" id="np-quote-author">এক ট্রাফিক সার্জেন্ট</div>
+            </div>
+          </div>
+
+          <!-- News Body Paragraph -->
+          <div class="np-article-text" id="np-article-text">
+            <p><b>নিজস্ব প্রতিবেদক, ঢাকা:</b> রাস্তার নবাবের গতির মুখে শেষ বাসের ধাক্কায় ট্রাফিক থমকে দাঁড়ায়। চালক শাপেল সোজা বাসের ছাদে, এবং ভাড়া না দিয়েই পরের স্টপেজে নেমে যান।</p>
+            <p>কর্তৃপক্ষ বলেছে, "কঠোর ব্যবস্থা নেওয়া হবে।" কবে নেওয়া হবে, সে প্রশ্নের উত্তর পাওয়া যায়নি।</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Investigation Report & Editor Banner -->
+      <div class="np-investigation-box">
+        <div class="np-investigation-text">
+          ঘটনা তদন্তে তিন সদস্যের একটি কমিটি গঠন করা হয়েছে। কমিটিকে সাত কার্যদিবসের মধ্যে প্রতিবেদন জমা দিতে বলা হয়েছে। এর আগের ৪১টি কমিটির প্রতিবেদন এখনও জমা পড়েনি।
+        </div>
+        <div class="np-editor-credit">
+          গেম নির্মাতা ও সম্পাদক: <u>তওসিফ মুহতাদী খান</u>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="np-footer">
+        <div class="np-btn-row">
+          <button class="np-btn-yellow" id="btn-restart">আবার খেলুন</button>
+          <button class="np-btn-white" id="btn-home" onclick="location.reload()">
+            <span class="np-btn-icon">⌂</span> প্রধান মেনু
+          </button>
+          <button class="np-btn-white" id="btn-share-photo">ছবি শেয়ার</button>
+          <button class="np-btn-white" id="btn-share-video">স্কোর শেয়ার</button>
+          <div class="np-highscore-badge">
+            সর্বোচ্চ রেকর্ড: <span id="np-highscore-val">৳ ২৫,৪০০</span>
+          </div>
+        </div>
+        <div class="np-sublinks-row">
+          <div class="np-links-left">
+            <span class="np-red-link" id="btn-np-wanted">সেরা ড্রাইভার তালিকা</span> - নতুন আপডেট এলে খবর চান? <span class="np-red-link">সাবস্ক্রাইব করুন</span>
+          </div>
+          <div class="np-links-right">
+            Original Game Created by <strong class="np-author-link">Towsif Muhtadi Khan</strong> 🇧🇩
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 1: ঢাকা এক্সপ্রেস সেরা ড্রাইভার তালিকা (Leaderboard) -->
+  <div class="modal-overlay" id="darbar-modal" style="display: none;">
+    <div class="custom-dialog-card">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-crest">🏆</span>
+          <div>
+            <h2 class="dialog-title">ঢাকা এক্সপ্রেস · সেরা রেকর্ডধারী</h2>
+            <div class="dialog-sub">ঢাকার রাজপথ কাঁপানো সর্বকালের সেরা রাস্তার নবাবদের তালিকা</div>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-darbar">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="leaderboard-table">
+          <div class="lb-row lb-rank-1">
+            <div class="lb-rank">🥇 ১</div>
+            <div class="lb-info">
+              <div class="lb-name">হাজী আক্কাস আলী <span class="lb-nick">মিরপুরের ডন</span></div>
+              <div class="lb-note">৩৪৮টি বাস উল্টানো • মোস্ট ওয়ান্টেড</div>
+            </div>
+            <div class="lb-score">৳ ৯,৯৯,৯৯৯</div>
+          </div>
+
+          <div class="lb-row lb-rank-2">
+            <div class="lb-rank">🥈 ২</div>
+            <div class="lb-info">
+              <div class="lb-name">চান্দু মামা <span class="lb-nick">হাইওয়ে রকেট</span></div>
+              <div class="lb-note">একটানা উল্টাপথে ২০০ কিমি • ওয়ারেন্ট জারি</div>
+            </div>
+            <div class="lb-score">৳ ৮,৭৫,২০০</div>
+          </div>
+
+          <div class="lb-row lb-rank-3">
+            <div class="lb-rank">🥉 ৩</div>
+            <div class="lb-info">
+              <div class="lb-name">কালু ড্রাইভার <span class="lb-nick">ব্রেক ছাড়া অটো</span></div>
+              <div class="lb-note">সার্জেন্টকে চা-নাশতার বিল ফাঁকি • পলাতক</div>
+            </div>
+            <div class="lb-score">৳ ৭,৩০,০০০</div>
+          </div>
+
+          <div class="lb-row">
+            <div class="lb-rank">⚡ ৪</div>
+            <div class="lb-info">
+              <div class="lb-name">রকেট রফিক <span class="lb-nick">গুলিস্তানের ত্রাস</span></div>
+              <div class="lb-note">১০টি হাইড্রোলিক হর্নে কানের পর্দা চুরমার</div>
+            </div>
+            <div class="lb-score">৳ ৬,১০,৫০০</div>
+          </div>
+
+          <div class="lb-row lb-user-row">
+            <div class="lb-rank">🌟 ৫</div>
+            <div class="lb-info">
+              <div class="lb-name">আপনি <span class="lb-nick">রাস্তার নবাব</span></div>
+              <div class="lb-note">লাইসেন্স: লাগেনা • মিশন চলছে</div>
+            </div>
+            <div class="lb-score" id="darbar-user-val">৳ ২৫,৪০০</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button class="btn-dialog-primary" id="btn-darbar-play">খেলা শুরু করুন ➔</button>
+        <button class="btn-dialog-dim" id="btn-close-darbar-2">বন্ধ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: গেম অপশন ও সেটিংস (Settings Modal) -->
+  <div class="modal-overlay" id="options-modal" style="display: none;">
+    <div class="custom-dialog-card">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-crest">⚙️</span>
+          <div>
+            <h2 class="dialog-title">গেম অপশন ও সেটিংস</h2>
+            <div class="dialog-sub">আপনার পছন্দ অনুযায়ী ড্রাইভিং ও অডিও সেটিংস সাজান</div>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-options">✕</button>
+      </div>
+
+      <div class="dialog-body options-grid">
+        <!-- Option 1: Audio / Sound -->
+        <div class="opt-row">
+          <div class="opt-info">
+            <div class="opt-title">🔊 সাউন্ড ও হর্ন</div>
+            <div class="opt-desc">মোটর, হর্ন ও সংঘর্ষের শব্দ চালু বা বন্ধ</div>
+          </div>
+          <button class="opt-toggle-btn" id="opt-btn-sound">চালু</button>
+        </div>
+
+        <!-- Option 1b: Master Volume Slider -->
+        <div class="opt-row">
+          <div class="opt-info">
+            <div class="opt-title">🎚️ সাউন্ড ভলিউম (শব্দের মাত্রা)</div>
+            <div class="opt-desc">কানের আরাম অনুযায়ী শব্দ স্মুথ ও সহনশীল রাখুন</div>
+          </div>
+          <div class="opt-slider-wrap">
+            <input type="range" id="opt-volume-slider" min="0" max="100" value="50" class="custom-slider" />
+            <span id="opt-volume-text" class="opt-slider-val">৫০%</span>
+          </div>
+        </div>
+
+        <!-- Option 2: Camera View -->
+        <div class="opt-row">
+          <div class="opt-info">
+            <div class="opt-title">🎥 ক্যামেরা ভিউ মোড</div>
+            <div class="opt-desc">আপনার পছন্দের রোড পারস্পেক্টিভ</div>
+          </div>
+          <div class="opt-choice-group" id="opt-cam-group">
+            <button class="opt-choice-btn active" data-cam="normal">নরমাল</button>
+            <button class="opt-choice-btn" data-cam="wide">ওয়াইড</button>
+            <button class="opt-choice-btn" data-cam="top">টপ-ডাউন</button>
+          </div>
+        </div>
+
+        <!-- Option 3: Drive Mode -->
+        <div class="opt-row">
+          <div class="opt-info">
+            <div class="opt-title">🕹️ ড্রাইভ কন্ট্রোল মোড</div>
+            <div class="opt-desc">মোবাইলে আরামদায়ক অটোরান বনাম ফুল কন্ট্রোল</div>
+          </div>
+          <div class="opt-choice-group" id="opt-ctrl-group">
+            <button class="opt-choice-btn active" data-ctrl="auto">অটো-ক্রুজ</button>
+            <button class="opt-choice-btn" data-ctrl="manual">ম্যানুয়াল</button>
+          </div>
+        </div>
+
+        <!-- Option 4: Graphics -->
+        <div class="opt-row">
+          <div class="opt-info">
+            <div class="opt-title">💎 গ্রাফিক্স কোয়ালিটি</div>
+            <div class="opt-desc">স্মুথ ৬০ FPS বনাম কম পাওয়ার ব্যাটারি সেভার</div>
+          </div>
+          <div class="opt-choice-group" id="opt-gfx-group">
+            <button class="opt-choice-btn active" data-gfx="high">আল্ট্রা ৬০ FPS</button>
+            <button class="opt-choice-btn" data-gfx="low">সেভার</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button class="btn-dialog-primary" id="btn-save-options">সংরক্ষণ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: গেম শেয়ার (Share Modal) -->
+  <div class="modal-overlay" id="share-modal" style="display: none;">
+    <div class="custom-dialog-card">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-crest">📢</span>
+          <div>
+            <h2 class="dialog-title">আপনার রেকর্ড শেয়ার করুন</h2>
+            <div class="dialog-sub">ঢাকার রাজপথে আপনার তাণ্ডব বন্ধুদের সাথে শেয়ার করুন!</div>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-share">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="share-preview-box">
+          <div class="sp-quote">"ঢাকার রাজপথে রাস্তার নবাবের দুরন্ত তাণ্ডব! লাইসেন্স নাই, ব্রেক নাই, হর্নের শব্দে রাস্তা খালি!"</div>
+          <div class="sp-record">আমার রেকর্ড স্কোর: <b id="share-record-val">৳ ২৫,৪০০</b></div>
+        </div>
+
+        <div class="share-channels">
+          <button class="share-chan-btn sc-fb" id="share-btn-fb">
+            <span>📘 Facebook</span>
+          </button>
+          <button class="share-chan-btn sc-wa" id="share-btn-wa">
+            <span>💬 WhatsApp</span>
+          </button>
+          <button class="share-chan-btn sc-copy" id="share-btn-copy">
+            <span>📋 লিংক কপি</span>
+          </button>
+        </div>
+        <div class="share-copy-toast" id="share-copy-toast" style="display: none;">✓ লিংক ক্লিপবোর্ডে কপি হয়েছে!</div>
+      </div>
+
+      <div class="dialog-footer">
+        <button class="btn-dialog-dim" id="btn-close-share-2">বন্ধ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: খেলা স্থগিত / বিরতি (Pause Menu) -->
+  <div class="modal-overlay" id="pause-modal" style="display: none;">
+    <div class="custom-dialog-card pause-card">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <span class="dialog-crest">⏸️</span>
+          <div>
+            <h2 class="dialog-title">খেলা বিরতি (PAUSED)</h2>
+            <div class="dialog-sub">চা-নাশতার বিরতি! দম নিয়ে আবার চালান।</div>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-pause">✕</button>
+      </div>
+
+      <div class="dialog-body pause-body">
+        <div class="pause-stats-grid">
+          <div class="p-stat-box">
+            <span class="psb-label">🔥 বর্তমান স্কোর</span>
+            <span class="psb-val" id="pause-stat-damage">৳ ০</span>
+          </div>
+          <div class="p-stat-box">
+            <span class="psb-label">⚡ ব্যাটারি পাওয়ার</span>
+            <span class="psb-val" id="pause-stat-battery">১০০%</span>
+          </div>
+          <div class="p-stat-box">
+            <span class="psb-label">🚨 ভিআইপি দূরত্ব</span>
+            <span class="psb-val" id="pause-stat-vip">১২২ মি</span>
+          </div>
+          <div class="p-stat-box">
+            <span class="psb-label">🧭 বর্তমান স্টেশন</span>
+            <span class="psb-val" id="pause-stat-station">আগারগাঁও</span>
+          </div>
+        </div>
+
+        <div class="pause-actions-list">
+          <button class="pause-action-btn pab-resume" id="btn-pause-resume">
+            <span class="pab-icon">▶️</span>
+            <span>চালিয়ে যান (Resume)</span>
+          </button>
+          <button class="pause-action-btn pab-restart" id="btn-pause-restart">
+            <span class="pab-icon">🔄</span>
+            <span>নতুন করে শুরু (Restart)</span>
+          </button>
+          <button class="pause-action-btn pab-options" id="btn-pause-options">
+            <span class="pab-icon">⚙️</span>
+            <span>সেটিংস ও সাউন্ড (Settings)</span>
+          </button>
+          <button class="pause-action-btn pab-home" id="btn-pause-home">
+            <span class="pab-icon">⌂</span>
+            <span>প্রধান মেনুতে ফিরুন (Quit to Menu)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
