@@ -501,4 +501,59 @@ export class SoundManager {
     }
     return this.isMuted;
   }
+
+  // Authentic Dhaka Traffic Police Whistle (dual-tone trill)
+  playPoliceWhistle() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const duration = 0.45;
+
+      // Tone 1: 2600 Hz
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(2600, now);
+
+      // Tone 2: 2920 Hz (creating realistic beat frequency / trill)
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(2920, now);
+
+      // Trill modulation LFO (16 Hz)
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      lfo.frequency.setValueAtTime(16, now);
+      lfoGain.gain.setValueAtTime(140, now);
+      lfo.connect(osc1.frequency);
+      lfo.connect(osc2.frequency);
+
+      // Envelope
+      gain1.gain.setValueAtTime(0.001, now);
+      gain1.gain.linearRampToValueAtTime(0.18, now + 0.04);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      gain2.gain.setValueAtTime(0.001, now);
+      gain2.gain.linearRampToValueAtTime(0.18, now + 0.04);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc1.connect(gain1);
+      gain1.connect(this.masterGain);
+
+      osc2.connect(gain2);
+      gain2.connect(this.masterGain);
+
+      lfo.start(now);
+      osc1.start(now);
+      osc2.start(now);
+
+      lfo.stop(now + duration + 0.05);
+      osc1.stop(now + duration + 0.05);
+      osc2.stop(now + duration + 0.05);
+    } catch (e) {}
+  }
+
 }

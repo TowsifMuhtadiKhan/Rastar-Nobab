@@ -1665,4 +1665,150 @@ export class TextureFactory {
     return tex;
   }
 
+
+  // 36. Perpendicular Crossroad Asphalt Texture (1024x512) for Chourasta 4-way intersection
+  static createCrossroadTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Dark charcoal hot-mix bitumen base
+    ctx.fillStyle = '#1e2126';
+    ctx.fillRect(0, 0, 1024, 512);
+
+    // Fine aggregate asphalt speckles
+    for (let i = 0; i < 14000; i++) {
+      const shade = Math.floor(Math.random() * 32 + 24);
+      ctx.fillStyle = `rgb(${shade},${shade + 2},${shade + 4})`;
+      ctx.fillRect(Math.random() * 1024, Math.random() * 512, 1.5, 1.5);
+    }
+
+    // Horizontal tire wear marks
+    const tireYs = [90, 160, 350, 420];
+    for (const ty of tireYs) {
+      const grad = ctx.createLinearGradient(0, ty - 25, 0, ty + 25);
+      grad.addColorStop(0, 'rgba(20, 22, 26, 0)');
+      grad.addColorStop(0.5, 'rgba(16, 18, 22, 0.45)');
+      grad.addColorStop(1, 'rgba(20, 22, 26, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, ty - 25, 1024, 50);
+    }
+
+    // Outer white edge lines
+    ctx.strokeStyle = '#f8fafc';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(0, 24); ctx.lineTo(1024, 24);
+    ctx.moveTo(0, 488); ctx.lineTo(1024, 488);
+    ctx.stroke();
+
+    // Central yellow dashed line along the crossroad
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 8;
+    ctx.setLineDash([60, 45]);
+    ctx.beginPath();
+    ctx.moveTo(0, 256); ctx.lineTo(1024, 256);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
+  // 37. High-Contrast Roundabout Curb Ring Texture (512x64)
+  static createRoundaboutCurbTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, 512, 64);
+
+    const stripeWidth = 32;
+    for (let x = 0; x < 512 + stripeWidth; x += stripeWidth * 2) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + stripeWidth, 0);
+      ctx.lineTo(x + stripeWidth - 14, 64);
+      ctx.lineTo(x - 14, 64);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
+  }
+
+  // 38. Authentic Dhaka Chourasta Highway Gantry Signboard (1024x256)
+  static createChourastaGantryTexture(title = 'মিরপুর ১০ গোলচত্বর / চৌরাস্তা', leftDest = '⬅ মিরপুর ১ / গাবতলী', centerDest = '⬆ কাজীপাড়া · ফার্মগেট ⬆', rightDest = 'বনানী / মহাখালী ➡') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // BD Highway Sign Green
+    ctx.fillStyle = '#006a4e';
+    ctx.fillRect(0, 0, 1024, 256);
+
+    // Double crisp white border
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(10, 10, 1004, 236);
+    ctx.lineWidth = 3;
+    ctx.strokeRect(20, 20, 984, 216);
+
+    // Top Title Bar (Header)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(20, 20, 984, 72);
+
+    ctx.fillStyle = '#facc15'; // Golden yellow title
+    ctx.font = 'bold 36px "Hind Siliguri", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`★ ${title} ★`, 512, 68);
+
+    // Divider line
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(20, 94); ctx.lineTo(1004, 94);
+    ctx.stroke();
+
+    // 3 Destination panels
+    ctx.beginPath();
+    ctx.moveTo(348, 94); ctx.lineTo(348, 236);
+    ctx.moveTo(676, 94); ctx.lineTo(676, 236);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px "Hind Siliguri", sans-serif';
+
+    // Left lane destination
+    ctx.fillText(leftDest, 184, 175);
+
+    // Center straight destination
+    ctx.fillStyle = '#6ee7b7'; // Bright mint green
+    ctx.fillText(centerDest, 512, 175);
+
+    // Right lane destination
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(rightDest, 840, 175);
+
+    // Subtitle cues in small font
+    ctx.font = '16px "Hind Siliguri", sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText('বাম লেন', 184, 215);
+    ctx.fillText('সোজা এক্সপ্রেসওয়ে', 512, 215);
+    ctx.fillText('ডান লেন', 840, 215);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    return tex;
+  }
+
 }

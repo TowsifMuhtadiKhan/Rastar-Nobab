@@ -34,6 +34,11 @@ export class DhakaCity {
     this.initCity();
   }
 
+  isChourastaCrossing(z) {
+    const mod = ((z % 240) + 240) % 240;
+    return mod < 14 || mod > 226;
+  }
+
   initCity() {
     const buildingColors = [
       0x993322, // Dhaka Terracotta Brick Red
@@ -186,7 +191,8 @@ export class DhakaCity {
     for (let p = 0; p < 16; p++) {
       const isLeft = p % 2 === 0;
       const x = isLeft ? -13.2 : 13.2;
-      const z = -p * 32;
+      let z = -p * 32;
+      if (this.isChourastaCrossing(z)) z -= 16;
       const pole = this.createElectricPole(isLeft);
       pole.position.set(x, 0, z);
       this.scene.add(pole);
@@ -198,7 +204,9 @@ export class DhakaCity {
 
     // 6. Sidewalk Concrete Boundary Walls & Low-poly Trees (Moved back to X = +/- 17.8 for full 4.6m sidewalk!)
     for (let w = 0; w < 24; w++) {
-      const wall = this.createBoundaryWallWithTrees(-w * 18);
+      let wz = -w * 18;
+      if (this.isChourastaCrossing(wz)) wz -= 16;
+      const wall = this.createBoundaryWallWithTrees(wz);
       this.scene.add(wall);
       this.boundaryWalls.push(wall);
     }
@@ -939,7 +947,9 @@ export class DhakaCity {
         for (const other of this.electricPoles) {
           if (other.position.z < minZ) minZ = other.position.z;
         }
-        p.position.z = minZ - 32;
+        let nextZ = minZ - 32;
+        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
+        p.position.z = nextZ;
       }
     }
 
@@ -972,7 +982,9 @@ export class DhakaCity {
         for (const other of this.boundaryWalls) {
           if (other.position.z < minZ) minZ = other.position.z;
         }
-        bw.position.z = minZ - 18;
+        let nextZ = minZ - 18;
+        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
+        bw.position.z = nextZ;
       }
     }
 

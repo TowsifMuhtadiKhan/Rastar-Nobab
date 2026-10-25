@@ -8,6 +8,7 @@ export class TrafficManager {
     this.maxVehicles = 26;
     this.spawnTimer = 0;
     this.spawnInterval = 1.1;
+    this.crossTrafficTimer = 0;
 
     // Dhaka Highway Lanes:
     // Left: Wrong-way traffic oncoming (X: -8.5, -5.5, -2.5)
@@ -21,11 +22,26 @@ export class TrafficManager {
     this.initHighwayTraffic(0);
   }
 
-  update(delta, playerZ, playerSpeed) {
+  update(delta, playerZ, playerSpeed, activeChourastas = []) {
     this.spawnTimer += delta;
     if (this.spawnTimer >= this.spawnInterval && this.vehicles.length < this.maxVehicles) {
       this.spawnTimer = 0;
       this.spawnRandomVehicle(playerZ);
+    }
+
+    // Spawn authentic dynamic cross-traffic at upcoming Chourasta
+    if (activeChourastas && activeChourastas.length > 0) {
+      this.crossTrafficTimer += delta;
+      if (this.crossTrafficTimer >= 2.0) {
+        this.crossTrafficTimer = 0;
+        for (const ch of activeChourastas) {
+          const distAhead = playerZ - ch.z;
+          if (distAhead > 15 && distAhead < 120) {
+            this.spawnCrossTrafficAtChourasta(ch.z);
+            break;
+          }
+        }
+      }
     }
 
     // Ensure there is always a VIP car target ahead
@@ -103,6 +119,28 @@ export class TrafficManager {
       vehicle.speed = 20 + Math.random() * 25;
       vehicle.isWrongWay = false;
     }
+
+    this.vehicles.push(vehicle);
+  }
+
+  spawnCrossTrafficAtChourasta(chourastaZ) {
+    if (this.vehicles.length >= this.maxVehicles + 4) return;
+    const movingRight = Math.random() > 0.5;
+    const startX = movingRight ? -32 : 32;
+    const laneZ = chourastaZ + (movingRight ? -4.5 : 4.5);
+
+    const rand = Math.random();
+    let type = 'cng';
+    if (rand < 0.60) type = 'cng';       // 60% Green CNG Auto-Rickshaws crossing
+    else if (rand < 0.82) type = 'bus';  // 22% Dhaka Buses crossing
+    else type = 'sedan';                 // 18% Private Sedans
+
+    const vehicle = new TrafficCar(this.scene, type);
+    vehicle.isCrossTraffic = true;
+    vehicle.crossSpeed = (movingRight ? 1 : -1) * (14 + Math.random() * 8);
+    vehicle.group.position.set(startX, 0, laneZ);
+    vehicle.group.rotation.y = movingRight ? Math.PI / 2 : -Math.PI / 2;
+    vehicle.speed = Math.abs(vehicle.crossSpeed);
 
     this.vehicles.push(vehicle);
   }

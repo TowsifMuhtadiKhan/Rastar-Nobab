@@ -50,13 +50,21 @@ export class MetroRail {
     // Initial pillars
     for (let i = 0; i < 8; i++) {
       const pillar = this.createPillar();
-      pillar.position.set(0, viaductHeight / 2, -i * this.pillarSpacing);
+      const safeZ = this.getSafePillarZ(-i * this.pillarSpacing);
+      pillar.position.set(0, viaductHeight / 2, safeZ);
       this.scene.add(pillar);
       this.pillars.push(pillar);
     }
 
     // Metro Train
     this.initTrain();
+  }
+
+  getSafePillarZ(baseZ) {
+    const mod = ((baseZ % 240) + 240) % 240;
+    if (mod < 14) return baseZ - 18;
+    if (mod > 226) return baseZ + 18;
+    return baseZ;
   }
 
   createPillar() {
@@ -122,7 +130,7 @@ export class MetroRail {
         for (const other of this.pillars) {
           if (other.position.z < minZ) minZ = other.position.z;
         }
-        p.position.z = minZ - this.pillarSpacing;
+        p.position.z = this.getSafePillarZ(minZ - this.pillarSpacing);
       }
     }
 
@@ -135,7 +143,8 @@ export class MetroRail {
 
   reset() {
     for (let i = 0; i < this.pillars.length; i++) {
-      this.pillars[i].position.set(0, this.viaductHeight / 2, -i * this.pillarSpacing);
+      const safeZ = this.getSafePillarZ(-i * this.pillarSpacing);
+      this.pillars[i].position.set(0, this.viaductHeight / 2, safeZ);
     }
     this.trainGroup.position.set(0, 0, -250);
   }

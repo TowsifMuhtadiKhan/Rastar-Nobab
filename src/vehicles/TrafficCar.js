@@ -11,6 +11,7 @@ export class TrafficCar {
     this.targetSpeed = 0;
     this.isWrongWay = false;
     this.crossSpeed = 0;
+    this.isCrossTraffic = false;
     this.width = 2.0;
     this.length = 4.5;
     this.height = 1.8;
@@ -478,15 +479,26 @@ export class TrafficCar {
   update(delta, playerZ) {
     if (!this.active) return;
 
-    const dir = this.isWrongWay ? 1 : -1;
-    this.group.position.z += dir * (this.speed / 3.6) * delta;
-
-    // Crossing pedestrian lateral motion
-    if (this.crossSpeed) {
+    if (this.isCrossTraffic) {
+      // Moves horizontally across the Chourasta intersection along X axis
       this.group.position.x += this.crossSpeed * delta;
-      if (Math.abs(this.group.position.x) > 12.5) {
-        this.crossSpeed *= -1;
-        this.group.rotation.y = this.crossSpeed > 0 ? Math.PI / 2 : -Math.PI / 2;
+      this.group.rotation.y = this.crossSpeed > 0 ? Math.PI / 2 : -Math.PI / 2;
+
+      if (Math.abs(this.group.position.x) > 36) {
+        this.active = false;
+        this.group.visible = false;
+      }
+    } else {
+      const dir = this.isWrongWay ? 1 : -1;
+      this.group.position.z += dir * (this.speed / 3.6) * delta;
+
+      // Crossing pedestrian lateral motion
+      if (this.crossSpeed) {
+        this.group.position.x += this.crossSpeed * delta;
+        if (Math.abs(this.group.position.x) > 12.5) {
+          this.crossSpeed *= -1;
+          this.group.rotation.y = this.crossSpeed > 0 ? Math.PI / 2 : -Math.PI / 2;
+        }
       }
     }
 
@@ -514,11 +526,12 @@ export class TrafficCar {
     return {
       x: this.group.position.x,
       z: this.group.position.z,
-      width: this.width,
-      length: this.length,
+      width: this.isCrossTraffic ? this.length : this.width,
+      length: this.isCrossTraffic ? this.width : this.length,
       type: this.type,
       isSergeant: this.isSergeant,
-      isVIP: this.isVIP
+      isVIP: this.isVIP,
+      isCrossTraffic: this.isCrossTraffic
     };
   }
 }

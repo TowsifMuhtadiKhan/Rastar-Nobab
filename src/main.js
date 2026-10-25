@@ -695,7 +695,52 @@ class Game {
     const pBounds = this.player.getBounds();
     const pPos = this.player.group.position;
 
-    // 0. Solid Concrete Metro Pillar Collision (Pillars at X=0, spaced every 40m)
+    // 0. Central Roundabout Island Collision (গোলচত্বর বা ট্রাফিক পুলিশ আইল্যান্ড)
+    const activeChourastas = (typeof this.road.getActiveChourastas === 'function') 
+      ? this.road.getActiveChourastas() : [];
+    for (const ch of activeChourastas) {
+      const dx = pPos.x;
+      const dz = pPos.z - ch.z;
+      const distToCenter = Math.sqrt(dx * dx + dz * dz);
+      if (distToCenter < ch.radius + 0.65) {
+        this.sound.playCrashSound(1.4);
+        this.sound.playDhapashSound();
+        this.sound.playPoliceWhistle();
+        this.screenShake = 0.65;
+        this.effects.createCrashSparks(pPos.x, 0.9, pPos.z, 28);
+
+        const islandGalis = [
+          'এই ব্যাটা! গোলচত্বরে গাড়ি উঠাইয়া দিলি ক্যান রে?!',
+          'ট্রাফিক আইল্যান্ড কি তোর নানার ড্রয়িংরুম?! সাইড দিয়া যা!',
+          'রাস্তার নবাব হইছস তো কি হইছে?! গোলচত্বর কি তোর বাপের?!',
+          'চৌরাস্তায় লাল বাতি দেখো নাই?! সোজা আইল্যান্ডে ধাক্কা মারলা?!'
+        ];
+        const islandGali = islandGalis[Math.floor(Math.random() * islandGalis.length)];
+
+        const gali = this.effects.createDhapashImpact(
+          0, 1.2, ch.z, this.camera, 'ধড়াম!', islandGali, 15000
+        );
+        this.sound.speakGali(gali);
+        this.hud.showSpeech(gali);
+        this.nationalDamage += 15000;
+
+        this.player.speed = -14;
+        const pushAngle = Math.atan2(dz, dx);
+        pPos.x = Math.cos(pushAngle) * (ch.radius + 0.9);
+        pPos.z = ch.z + Math.sin(pushAngle) * (ch.radius + 0.9);
+        return;
+      }
+
+      // Approach warning when 35m-65m away from Chourasta
+      const distAhead = pPos.z - ch.z;
+      if (distAhead > 35 && distAhead < 65 && Math.abs((this.lastChourastaZ || 9999) - ch.z) > 100) {
+        this.lastChourastaZ = ch.z;
+        this.sound.playPoliceWhistle();
+        this.effects.showFloatingText(`🚨 চৌরাস্তা: ${ch.stationData.name}!`, '#facc15', '28px');
+      }
+    }
+
+    // Solid Concrete Metro Pillar Collision (Pillars at X=0, spaced every 40m)
     if (Math.abs(pPos.x) < 1.05) {
       const nearestPillarZ = Math.round(pPos.z / 40) * 40;
       const distToPillar = Math.abs(pPos.z - nearestPillarZ);
@@ -793,7 +838,17 @@ class Game {
 
         let customGali = null;
         let starWord = 'ধপাস!';
-        if (car.type === 'cng') {
+        if (car.isCrossTraffic) {
+          const crossGalis = [
+            'চৌরাস্তায় লাল বাতি দেখেন না মিয়া?! সিগন্যাল ভাইঙ্গা মারলেন?!',
+            'আরে ভাই! আড়াআড়ি সিএনজির লগে টক্কর দেন ক্যান?!',
+            'চৌরাস্তার মোড়েও রেষারেষি?! এই ব্যাটারে কে ড্রাইভিং লাইসেন্স দিল?!',
+            'সিগন্যালে গাড়ি থামান নাই ক্যান?! ট্রাফিক সার্জেন্ট মামলা দিতাছে দাঁড়ান!',
+            'সোজা চৌরাস্তার আইল্যান্ড পার হইয়া আমারে মারলা?!'
+          ];
+          customGali = crossGalis[Math.floor(Math.random() * crossGalis.length)];
+          starWord = Math.random() > 0.5 ? 'ধড়াম!' : 'ধপাস!';
+        } else if (car.type === 'cng') {
           const cngGalis = [
             'মিটার চলে না মামা! ফিক্সড ৩০০ টাকা!',
             'সিএনজি কি খেলনা গাড়ি পাইছেন?! খাঁচা ভাইঙ্গা দিলেন!',
@@ -823,8 +878,11 @@ class Game {
         }
 
         // PHYSICAL SEPARATION: Do NOT let player phase or glide through the car!
-        const isHeadOn = car.isWrongWay;
-        if (isHeadOn) {
+        if (car.isCrossTraffic) {
+          this.player.speed = -12;
+          pPos.z += 1.8;
+          car.crossSpeed *= -0.5;
+        } else if (car.isWrongWay) {
           this.player.speed = -16; // Violently knocked backwards by oncoming bus/car!
           pPos.z += 2.0;
           car.group.position.x += (car.group.position.x > pBounds.x ? 3.5 : -3.5);
@@ -1105,7 +1163,7 @@ class Game {
       const mapData = this.map.update(pZ);
       this.props.update(delta, pZ);
 
-      this.traffic.update(delta, pZ, this.player.speed);
+      this.traffic.update(delta, pZ, this.player.speed, this.road.getActiveChourastas());
       this.loot.update(delta, pZ);
       this.effects.update(delta);
 
@@ -1128,7 +1186,7 @@ class Game {
     } else {
       // Dynamic living 3D Dhaka street during Start Screen / idle showcase!
       const pZ = this.player.group.position.z;
-      this.traffic.update(delta, pZ, 0);
+      this.traffic.update(delta, pZ, 0, this.road.getActiveChourastas());
       this.metro.update(delta, pZ);
       this.city.update(delta, pZ);
     }
