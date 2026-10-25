@@ -39,6 +39,96 @@ export class DhakaCity {
     return mod < 14 || mod > 226;
   }
 
+  createDhakaBuilding(isLeft, z, color, variant) {
+    const group = new THREE.Group();
+    const width = 16 + (variant % 3) * 2; // 16m to 20m wide
+    const height = 24 + (variant % 5) * 7; // 24m to 52m tall multistory towers
+    const depth = 20; // 20m depth to seamlessly line up along Z
+    const x = isLeft ? (-18.2 - width / 2) : (18.2 + width / 2);
+
+    // 1. Solid Main Building Block
+    const geo = new THREE.BoxGeometry(width, height, depth);
+    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.85 });
+    const b = new THREE.Mesh(geo, mat);
+    b.position.set(x, height / 2, 0);
+    b.receiveShadow = true;
+    group.add(b);
+
+    // 2. Front Facade Facing the Road with Lit Windows
+    const bTex = (variant % 2 === 0) ? this.brickTex0 : this.brickTex1;
+    const facadeGeo = new THREE.PlaneGeometry(depth * 0.98, height * 0.95);
+    const facadeMat = new THREE.MeshStandardMaterial({
+      map: bTex || null,
+      color: bTex ? 0xffffff : color,
+      roughness: 0.7
+    });
+    const facade = new THREE.Mesh(facadeGeo, facadeMat);
+    const faceX = isLeft ? (x + width / 2 + 0.05) : (x - width / 2 - 0.05);
+    facade.position.set(faceX, height / 2, 0);
+    facade.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
+    group.add(facade);
+
+    // 3. Ground Floor Shopfront with Canvas Awning Facing Road
+    const shopTex = (variant % 3 === 0) ? this.shopTex0 : (variant % 3 === 1 ? this.shopTex1 : this.shopTex2);
+    const shopGeo = new THREE.PlaneGeometry(11.0, 4.0);
+    const shopMat = new THREE.MeshStandardMaterial({ map: shopTex, roughness: 0.7 });
+    const shop = new THREE.Mesh(shopGeo, shopMat);
+    shop.position.set(isLeft ? faceX + 0.05 : faceX - 0.05, 2.0, 0);
+    shop.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
+    group.add(shop);
+
+    const canopyTex = (variant % 3 === 0) ? this.canopyRed : (variant % 3 === 1 ? this.canopyBlue : this.canopyYellow);
+    const canopyGeo = new THREE.PlaneGeometry(11.0, 2.6);
+    const canopyMat = new THREE.MeshStandardMaterial({ map: canopyTex, side: THREE.DoubleSide });
+    const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+    canopy.position.set(isLeft ? faceX + 1.1 : faceX - 1.1, 3.9, 0);
+    canopy.rotation.x = Math.PI / 2 + (isLeft ? 0.35 : -0.35);
+    canopy.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
+    group.add(canopy);
+
+    // 4. Balconies with Iron Railings and AC Units
+    const balconyMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.5 });
+    const acMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.4 });
+    const numFloors = Math.floor(height / 6.0);
+    for (let f = 1; f <= numFloors; f++) {
+      const by = f * 5.5;
+      const balGeo = new THREE.BoxGeometry(0.7, 0.9, 3.8);
+      const bal = new THREE.Mesh(balGeo, balconyMat);
+      bal.position.set(isLeft ? faceX + 0.35 : faceX - 0.35, by, -3.5);
+      group.add(bal);
+
+      const acGeo = new THREE.BoxGeometry(0.4, 0.5, 0.7);
+      const ac = new THREE.Mesh(acGeo, acMat);
+      ac.position.set(isLeft ? faceX + 0.2 : faceX - 0.2, by + 1.1, -1.0);
+      group.add(ac);
+    }
+
+    // 5. Rooftop Black Water Tank (গাজী / আরএফএল পানির ট্যাঙ্ক)
+    const tankGeo = new THREE.CylinderGeometry(1.4, 1.4, 2.4, 16);
+    const tankMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.7 });
+    const tank = new THREE.Mesh(tankGeo, tankMat);
+    tank.position.set(x + (isLeft ? 2 : -2), height + 1.2, 0);
+    group.add(tank);
+
+    // 6. Rooftop Dish Antenna
+    const dishGeo = new THREE.CylinderGeometry(0.8, 0.2, 0.25, 16);
+    const dishMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8 });
+    const dish = new THREE.Mesh(dishGeo, dishMat);
+    dish.rotation.x = Math.PI / 3;
+    dish.position.set(x + (isLeft ? -2 : 2), height + 0.6, -3);
+    group.add(dish);
+
+    // 7. Bangladesh Flag on select buildings
+    if (variant % 4 === 0) {
+      const flag = this.createBDFlag();
+      flag.position.set(isLeft ? faceX + 1.2 : faceX - 1.2, 7.5, 3.5);
+      group.add(flag);
+    }
+
+    group.position.set(0, 0, z);
+    return { group, isLeft, baseZ: z };
+  }
+
   initCity() {
     const buildingColors = [
       0x993322, // Dhaka Terracotta Brick Red
@@ -46,119 +136,26 @@ export class DhakaCity {
       0xd7ccc8, // Sandstone plaster
       0xb0bec5, // Concrete gray
       0x94a3b8, // Slate
-      0xfde68a  // Ochre cream
+      0xfde68a, // Ochre cream
+      0x854d0e, // Warm Dhaka Clay
+      0x334155  // Modern Slate Glass
     ];
 
-    // 1. Multistory Dhaka Buildings with Balconies, AC units & Rooftop Tanks
-    for (let i = 0; i < 32; i++) {
-      const isLeft = i % 2 === 0;
-      const x = isLeft ? -24 - Math.random() * 5 : 24 + Math.random() * 5;
-      let z = -i * 18;
-      if (this.isChourastaCrossing(z)) z -= 16;
-      const width = 13 + Math.random() * 5;
-      const height = 20 + Math.random() * 26;
-      const depth = 14 + Math.random() * 5;
-
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const color = isLeft ? 0x993322 : buildingColors[Math.floor(Math.random() * buildingColors.length)];
-      const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.85 });
-      const b = new THREE.Mesh(geo, mat);
-      b.position.set(x, height / 2, z);
-      b.castShadow = false; // Disabled on static buildings for ultra-smooth 60 FPS
-      b.receiveShadow = true;
-      this.scene.add(b);
-
-      // Building Front Facade with Brick, Lit Windows & Clinic Signs
-      const bTex = isLeft ? this.brickTex0 : this.brickTex1;
-      const facadeConfig = { roughness: 0.7 };
-      if (bTex) facadeConfig.map = bTex;
-      const facadeMat = new THREE.MeshStandardMaterial(facadeConfig);
-      const facadeGeo = new THREE.PlaneGeometry(width * 0.95, height * 0.95);
-      const facade = new THREE.Mesh(facadeGeo, facadeMat);
-      facade.position.set(
-        isLeft ? x + width / 2 + 0.08 : x - width / 2 - 0.08,
-        height / 2,
-        z
-      );
-      facade.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
-      this.scene.add(facade);
-
-      // Balconies with iron grills on front facade
-      const balconyMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.5 });
-      const numBalconies = Math.floor(height / 6);
-      const balconies = [facade];
-      for (let floor = 1; floor <= numBalconies; floor++) {
-        const by = floor * 5.5;
-        const balGeo = new THREE.BoxGeometry(0.8, 0.9, 3.6);
-        const bal = new THREE.Mesh(balGeo, balconyMat);
-        bal.position.set(isLeft ? x + width / 2 + 0.4 : x - width / 2 - 0.4, by, z + (Math.random() - 0.5) * 4);
-        bal.castShadow = true;
-        this.scene.add(bal);
-        balconies.push(bal);
-
-        // Outdoor AC Compressor Box on wall next to balcony
-        const acGeo = new THREE.BoxGeometry(0.45, 0.55, 0.75);
-        const acMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.4 });
-        const ac = new THREE.Mesh(acGeo, acMat);
-        ac.position.set(isLeft ? x + width / 2 + 0.22 : x - width / 2 - 0.22, by + 1.2, z + 2.5);
-        this.scene.add(ac);
-        balconies.push(ac);
+    // 1. Multistory Dhaka Buildings lining BOTH sides of the highway!
+    // 32 buildings on Left, 32 buildings on Right (64 buildings total covering 640m continuous cityscape)
+    this.buildings = [];
+    const numBuildingsPerSide = 32;
+    const spacing = 20; // 20m per building
+    for (let side = 0; side < 2; side++) {
+      const isLeft = side === 0;
+      for (let i = 0; i < numBuildingsPerSide; i++) {
+        // Spread evenly from -320m to +300m centered around player start
+        const z = -320 + i * spacing;
+        const color = buildingColors[(i + side * 3) % buildingColors.length];
+        const building = this.createDhakaBuilding(isLeft, z, color, i);
+        this.scene.add(building.group);
+        this.buildings.push(building);
       }
-
-      // Rooftop Black Water Tank (গাজী / আরএফএল পানির ট্যাঙ্ক)
-      const tankGeo = new THREE.CylinderGeometry(1.3, 1.3, 2.4, 16);
-      const tankMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.7 });
-      const tank = new THREE.Mesh(tankGeo, tankMat);
-      tank.position.set(x + (Math.random() * 3 - 1.5), height + 1.2, z + (Math.random() * 3 - 1.5));
-      tank.castShadow = true;
-      this.scene.add(tank);
-
-      // Rooftop Dish Antenna
-      const dishGeo = new THREE.CylinderGeometry(0.8, 0.2, 0.25, 16);
-      const dishMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8 });
-      const dish = new THREE.Mesh(dishGeo, dishMat);
-      dish.rotation.x = Math.PI / 3;
-      dish.position.set(x + 2, height + 0.6, z - 2);
-      this.scene.add(dish);
-
-      // Ground Floor Shopfront with Canvas Awning
-      const shopTex = (i % 3 === 0) ? this.shopTex0 : (i % 3 === 1 ? this.shopTex1 : this.shopTex2);
-      const shopGeo = new THREE.PlaneGeometry(8.5, 3.8);
-      const shopMat = new THREE.MeshStandardMaterial({ map: shopTex, roughness: 0.7 });
-      const shop = new THREE.Mesh(shopGeo, shopMat);
-      shop.position.set(isLeft ? x + width / 2 + 0.05 : x - width / 2 - 0.05, 2.0, z);
-      shop.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
-      this.scene.add(shop);
-
-      // Striped Canvas Awning projecting over sidewalk
-      const canopyTex = (i % 3 === 0) ? this.canopyRed : (i % 3 === 1 ? this.canopyBlue : this.canopyYellow);
-      const canopyGeo = new THREE.PlaneGeometry(8.5, 2.6);
-      const canopyMat = new THREE.MeshStandardMaterial({ map: canopyTex, side: THREE.DoubleSide });
-      const canopy = new THREE.Mesh(canopyGeo, canopyMat);
-      canopy.position.set(isLeft ? x + width / 2 + 1.2 : x - width / 2 - 1.2, 3.7, z);
-      canopy.rotation.x = Math.PI / 2 + (isLeft ? 0.35 : -0.35);
-      canopy.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
-      canopy.castShadow = true;
-      this.scene.add(canopy);
-
-      // Bangladesh Flag on occasional building facade
-      let flagGroup = null;
-      if (i % 4 === 0) {
-        flagGroup = this.createBDFlag();
-        flagGroup.position.set(isLeft ? x + width / 2 + 1.5 : x - width / 2 - 1.5, 6.8, z);
-        this.scene.add(flagGroup);
-      }
-
-      this.buildings.push({
-        mesh: b,
-        tank: tank,
-        dish: dish,
-        shop: shop,
-        canopy: canopy,
-        balconies: balconies,
-        flag: flagGroup,
-        baseX: x
-      });
     }
 
     // 2. Footpath Human Shops (টং দোকান, ঝালমুড়ি, ফল, কাপড়) - Authentic Dhaka Vendors!
@@ -757,20 +754,20 @@ export class DhakaCity {
     for (let tz of [-6, 2, 7]) {
       // Left trees
       const trunkL = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.5), trunkMat);
-      trunkL.position.set(-19.0, 1.25, tz);
+      trunkL.position.set(-17.5, 1.25, tz);
       group.add(trunkL);
 
       const foliageL = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 1), tz % 2 === 0 ? treeMat1 : treeMat2);
-      foliageL.position.set(-19.0, 2.9, tz);
+      foliageL.position.set(-17.5, 2.9, tz);
       group.add(foliageL);
 
       // Right trees
       const trunkR = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.5), trunkMat);
-      trunkR.position.set(19.0, 1.25, tz);
+      trunkR.position.set(17.5, 1.25, tz);
       group.add(trunkR);
 
       const foliageR = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 1), tz % 2 === 0 ? treeMat2 : treeMat1);
-      foliageR.position.set(19.0, 2.9, tz);
+      foliageR.position.set(17.5, 2.9, tz);
       group.add(foliageR);
     }
 
@@ -919,86 +916,44 @@ export class DhakaCity {
     }
   }
 
-  setBuildingZ(b, newZ) {
-    b.mesh.position.z = newZ;
-    b.tank.position.z = newZ;
-    b.dish.position.z = newZ;
-    b.shop.position.z = newZ;
-    b.canopy.position.z = newZ;
-    if (b.flag) b.flag.position.z = newZ;
-    for (const bal of b.balconies) bal.position.z = newZ;
-  }
-
   update(delta, playerZ) {
-    const halfSpan = 240; // 480m total city span for seamless U-Turns
+    const totalSpan = 640;
+    const halfSpan = 320; // 640m continuous streaming window matching Road.js
 
-    // 1. Buildings bi-directional recycling
+    // 1. Multistory Dhaka Buildings modular continuous streaming
     for (const b of this.buildings) {
-      if (b.mesh.position.z > playerZ + halfSpan) {
-        let minZ = playerZ;
-        for (const other of this.buildings) {
-          if (other.mesh.position.z < minZ) minZ = other.mesh.position.z;
-        }
-        let newZ = minZ - 18;
-        if (this.isChourastaCrossing(newZ)) newZ -= 16;
-        this.setBuildingZ(b, newZ);
-      } else if (b.mesh.position.z < playerZ - halfSpan) {
-        let maxZ = playerZ;
-        for (const other of this.buildings) {
-          if (other.mesh.position.z > maxZ) maxZ = other.mesh.position.z;
-        }
-        let newZ = maxZ + 18;
-        if (this.isChourastaCrossing(newZ)) newZ += 16;
-        this.setBuildingZ(b, newZ);
+      const dz = b.group.position.z - playerZ;
+      if (dz > halfSpan) {
+        b.group.position.z -= totalSpan;
+      } else if (dz < -halfSpan) {
+        b.group.position.z += totalSpan;
       }
     }
 
-    // 2. Footpath Human Shops bi-directional recycling
+    // 2. Footpath Human Shops modular streaming
     for (const s of this.footpathShops) {
-      if (s.group.position.z > playerZ + halfSpan) {
-        let minZ = playerZ;
-        for (const other of this.footpathShops) {
-          if (other.group.position.z < minZ) minZ = other.group.position.z;
-        }
-        let nextZ = minZ - 25;
-        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
-        s.group.position.z = nextZ;
+      const dz = s.group.position.z - playerZ;
+      if (dz > halfSpan) {
+        s.group.position.z -= totalSpan;
         s.group.rotation.z = 0;
         s.isHit = false;
-      } else if (s.group.position.z < playerZ - halfSpan) {
-        let maxZ = playerZ;
-        for (const other of this.footpathShops) {
-          if (other.group.position.z > maxZ) maxZ = other.group.position.z;
-        }
-        let nextZ = maxZ + 25;
-        if (this.isChourastaCrossing(nextZ)) nextZ += 16;
-        s.group.position.z = nextZ;
+      } else if (dz < -halfSpan) {
+        s.group.position.z += totalSpan;
         s.group.rotation.z = 0;
         s.isHit = false;
       }
     }
 
-    // 3. Footpath Pedestrians bi-directional recycling & animated arm swing strides
+    // 3. Footpath Pedestrians modular streaming & walk animation
     const time = Date.now() * 0.007;
     for (const ped of this.footpathHumans) {
-      if (ped.group.position.z > playerZ + halfSpan) {
-        let minZ = playerZ;
-        for (const other of this.footpathHumans) {
-          if (other.group.position.z < minZ) minZ = other.group.position.z;
-        }
-        let nextZ = minZ - 9.5;
-        if (this.isChourastaCrossing(nextZ)) nextZ -= 14;
-        ped.group.position.z = nextZ;
+      const dz = ped.group.position.z - playerZ;
+      if (dz > halfSpan) {
+        ped.group.position.z -= totalSpan;
         ped.group.rotation.z = 0;
         ped.isHit = false;
-      } else if (ped.group.position.z < playerZ - halfSpan) {
-        let maxZ = playerZ;
-        for (const other of this.footpathHumans) {
-          if (other.group.position.z > maxZ) maxZ = other.group.position.z;
-        }
-        let nextZ = maxZ + 9.5;
-        if (this.isChourastaCrossing(nextZ)) nextZ += 14;
-        ped.group.position.z = nextZ;
+      } else if (dz < -halfSpan) {
+        ped.group.position.z += totalSpan;
         ped.group.rotation.z = 0;
         ped.isHit = false;
       }
@@ -1014,73 +969,43 @@ export class DhakaCity {
       }
     }
 
-    // 4. Utility Poles bi-directional recycling
+    // 4. Concrete Utility Poles modular streaming
     for (const p of this.electricPoles) {
-      if (p.position.z > playerZ + halfSpan) {
-        let minZ = playerZ;
-        for (const other of this.electricPoles) {
-          if (other.position.z < minZ) minZ = other.position.z;
-        }
-        let nextZ = minZ - 32;
-        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
-        p.position.z = nextZ;
-      } else if (p.position.z < playerZ - halfSpan) {
-        let maxZ = playerZ;
-        for (const other of this.electricPoles) {
-          if (other.position.z > maxZ) maxZ = other.position.z;
-        }
-        let nextZ = maxZ + 32;
-        if (this.isChourastaCrossing(nextZ)) nextZ += 16;
-        p.position.z = nextZ;
+      const dz = p.position.z - playerZ;
+      if (dz > halfSpan) {
+        p.position.z -= totalSpan;
+      } else if (dz < -halfSpan) {
+        p.position.z += totalSpan;
       }
     }
 
-    // 5. Overhead Wires bi-directional recycling
+    // 5. Overhead Wires modular streaming
     for (const ow of this.overheadWires) {
-      if (ow.line.position.z > playerZ + halfSpan) {
-        let minZ = playerZ;
-        for (const other of this.overheadWires) {
-          if (other.line.position.z < minZ) minZ = other.line.position.z;
-        }
-        ow.line.position.z = minZ - 32;
-      } else if (ow.line.position.z < playerZ - halfSpan) {
-        let maxZ = playerZ;
-        for (const other of this.overheadWires) {
-          if (other.line.position.z > maxZ) maxZ = other.line.position.z;
-        }
-        ow.line.position.z = maxZ + 32;
+      const dz = ow.line.position.z - playerZ;
+      if (dz > halfSpan) {
+        ow.line.position.z -= totalSpan;
+      } else if (dz < -halfSpan) {
+        ow.line.position.z += totalSpan;
       }
     }
 
-    // 6. Boundary Walls & Trees bi-directional recycling
+    // 6. Boundary Walls & Trees modular streaming
     for (const bw of this.boundaryWalls) {
-      if (bw.position.z > playerZ + halfSpan) {
-        let minZ = playerZ;
-        for (const other of this.boundaryWalls) {
-          if (other.position.z < minZ) minZ = other.position.z;
-        }
-        let nextZ = minZ - 18;
-        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
-        bw.position.z = nextZ;
-      } else if (bw.position.z < playerZ - halfSpan) {
-        let maxZ = playerZ;
-        for (const other of this.boundaryWalls) {
-          if (other.position.z > maxZ) maxZ = other.position.z;
-        }
-        let nextZ = maxZ + 18;
-        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
-        bw.position.z = nextZ;
+      const dz = bw.position.z - playerZ;
+      if (dz > halfSpan) {
+        bw.position.z -= totalSpan;
+      } else if (dz < -halfSpan) {
+        bw.position.z += totalSpan;
       }
     }
 
-    // 8. Bunting Flags recycling
-    for (const bf of this.buntingFlags) {
-      if (bf.position.z > playerZ + 40) {
-        let minZ = 0;
-        for (const other of this.buntingFlags) {
-          if (other.position.z < minZ) minZ = other.position.z;
-        }
-        bf.position.z = minZ - 70;
+    // 8. Footbridges modular streaming
+    for (const fb of this.footbridges) {
+      const dz = fb.position.z - playerZ;
+      if (dz > halfSpan) {
+        fb.position.z -= totalSpan;
+      } else if (dz < -halfSpan) {
+        fb.position.z += totalSpan;
       }
     }
   }
@@ -1158,24 +1083,16 @@ export class DhakaCity {
   }
 
   reset() {
-    for (let i = 0; i < this.buildings.length; i++) {
-      const b = this.buildings[i];
-      const z = -i * 18;
-      b.mesh.position.z = z;
-      b.tank.position.z = z;
-      b.dish.position.z = z;
-      b.shop.position.z = z;
-      b.canopy.position.z = z;
-      if (b.flag) b.flag.position.z = z;
-      for (const bal of b.balconies) bal.position.z = z;
+    for (const b of this.buildings) {
+      b.group.position.z = b.baseZ;
     }
     for (let s = 0; s < this.footpathShops.length; s++) {
-      this.footpathShops[s].group.position.z = -s * 25 - 12;
+      this.footpathShops[s].group.position.z = this.footpathShops[s].baseZ;
       this.footpathShops[s].group.rotation.z = 0;
       this.footpathShops[s].isHit = false;
     }
     for (let p = 0; p < this.footpathHumans.length; p++) {
-      this.footpathHumans[p].group.position.z = -p * 28 - 6;
+      this.footpathHumans[p].group.position.z = this.footpathHumans[p].baseZ;
       this.footpathHumans[p].group.rotation.z = 0;
       this.footpathHumans[p].isHit = false;
     }
