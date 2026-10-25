@@ -918,6 +918,23 @@ class Game {
         this.sound.playPoliceWhistle();
         this.effects.showFloatingText(`🚨 চৌরাস্তা: ${ch.stationData.name}!`, '#facc15', '28px');
       }
+
+      // Signal Breaking Nobab Bonus! Never stop at traffic lights!
+      if (Math.abs(pPos.z - ch.z) < 16.0 && !ch.signalBonusAwarded) {
+        ch.signalBonusAwarded = true;
+        this.takaCollected += 500;
+        this.sound.playCashSound();
+        this.effects.showFloatingText('🚦 সিগন্যাল ভাঙা নবাবী স্টাইল! +৳৫০০', '#22c55e', '26px');
+        this.hud.showSpeech('সিগন্যাল কি নবাবের জন্য নাকি?! সাইড কাটাও সোজা টান!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        // Clear all cars out of the intersection so Nobab breezes right through!
+        if (this.traffic) {
+          for (const v of this.traffic.vehicles) {
+            if (Math.abs(v.group.position.z - ch.z) < 32) {
+              v.reactToHorn();
+            }
+          }
+        }
+      }
     }
 
     // Solid Concrete Metro Pillar Collision (Pillars at X=0, spaced every 40m)
@@ -1114,10 +1131,11 @@ class Game {
           car.group.position.x += (car.group.position.x > pBounds.x ? 3.5 : -3.5);
           car.group.rotation.y += 0.5;
         } else {
-          // Rear-ended vehicle in front: rebound player backwards
-          this.player.speed = -8;
-          pPos.z = car.group.position.z + (car.length + pBounds.length) * 0.5 + 0.3;
-          car.speed += 20; // Nudge vehicle forward
+          // Rear-ended vehicle in front: Dhaka rickshaw style push-through!
+          this.player.speed = Math.max(18, this.player.speed * 0.9);
+          car.speed = Math.max(car.speed + 25, 42);
+          const pushX = (pBounds.x > car.group.position.x) ? -2.5 : 2.5;
+          car.group.position.x += pushX;
           car.reactToHorn();
         }
 

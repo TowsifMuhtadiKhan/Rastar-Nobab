@@ -900,14 +900,14 @@ export class RickshawTesla {
     }
     const isBoosting = !!input.boost || (this.boostTimer > 0);
 
-    const cruiseTarget = this.autoCruiseEnabled ? 26 : 0;
+    const cruiseTarget = this.autoCruiseEnabled ? 28 : 0;
     if (isBoosting) {
       // TURBO NITRO OVERDRIVE
-      this.speed += this.acceleration * 2.2 * delta;
+      this.speed += this.acceleration * 2.5 * delta;
       if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
       this.battery = Math.max(0, this.battery - 0.05);
     } else if (input.forward) {
-      this.speed += this.acceleration * delta;
+      this.speed += this.acceleration * 1.2 * delta;
       if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
       this.battery = Math.max(0, this.battery - 0.02);
     } else if (input.backward) {
@@ -915,10 +915,11 @@ export class RickshawTesla {
       if (this.speed < -12) this.speed = -12;
     } else {
       if (this.autoCruiseEnabled) {
+        // Guaranteed forward motion: never freeze in stop mode!
         if (this.speed < cruiseTarget) {
-          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.8 * delta);
+          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 1.2 * delta);
         } else if (this.speed > this.maxSpeed) {
-          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.5 * delta);
+          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.2 * delta);
         }
       } else {
         if (this.speed > 0) {

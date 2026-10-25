@@ -162,14 +162,14 @@ export class TrafficManager {
     return Math.max(0, dist);
   }
 
-  triggerHornShockwave(playerX, playerZ, radius = 28) {
+  triggerHornShockwave(playerX, playerZ, radius = 36) {
     const affected = [];
     for (const v of this.vehicles) {
       const dx = v.group.position.x - playerX;
       const dz = v.group.position.z - playerZ;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
-      if (dz < 0 && dist < radius) {
+      if (dist < radius) {
         v.reactToHorn();
         affected.push(v);
       }

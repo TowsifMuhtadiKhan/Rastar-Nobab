@@ -602,12 +602,11 @@ export class TrafficCar {
   }
 
   reactToHorn() {
-    if (this.swerved) return;
-    this.swerved = true;
-    this.panicTimer = 1.8;
+    this.panicTimer = 2.2;
     const steerDir = this.group.position.x > 0 ? 1 : -1;
-    this.group.position.x += steerDir * 2.5;
-    this.group.rotation.y += steerDir * 0.2;
+    this.group.position.x += steerDir * 2.8;
+    this.speed = Math.max(this.speed + 18, 42); // Speed up and clear the road!
+    this.group.rotation.y += steerDir * 0.15;
   }
 
   update(delta, playerZ) {
