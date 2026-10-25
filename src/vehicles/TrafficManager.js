@@ -16,6 +16,9 @@ export class TrafficManager {
 
     // Reference to current target VIP Car ahead
     this.vipCar = null;
+
+    // Pre-populate highway with iconic Green CNGs, buses & cars
+    this.initHighwayTraffic(0);
   }
 
   update(delta, playerZ, playerSpeed) {
@@ -62,12 +65,12 @@ export class TrafficManager {
     const isWrongSideLane = laneX < 0;
 
     const rand = Math.random();
-    let type = 'sedan';
-    if (rand < 0.28) type = 'bus';
-    else if (rand < 0.46) type = 'hiace';
-    else if (rand < 0.64) type = 'cng';
-    else if (rand < 0.80) type = 'sedan';
-    else type = 'pedestrian';
+    let type = 'cng';
+    if (rand < 0.36) type = 'cng';         // 36% Green CNG Auto-Rickshaws (iconic Dhaka traffic!)
+    else if (rand < 0.62) type = 'bus';    // 26% Dhaka Local Buses
+    else if (rand < 0.78) type = 'hiace';  // 16% Microbuses
+    else if (rand < 0.90) type = 'sedan';  // 12% Private Sedans
+    else type = 'pedestrian';              // 10% Crossing Pedestrians
 
     const vehicle = new TrafficCar(this.scene, type);
     const spawnZ = playerZ - (65 + Math.random() * 60);
@@ -152,6 +155,26 @@ export class TrafficManager {
     }
   }
 
+  initHighwayTraffic(playerZ) {
+    // Guaranteed Green CNG Auto-Rickshaws and traffic ahead right from the start line
+    const initialTypes = ['cng', 'bus', 'cng', 'hiace', 'cng', 'sedan', 'cng', 'bus'];
+    initialTypes.forEach((t, i) => {
+      const v = new TrafficCar(this.scene, t);
+      const lane = this.lanes[i % this.lanes.length];
+      const z = playerZ - (30 + i * 25);
+      v.group.position.set(lane, 0, z);
+      v.isWrongWay = lane < 0;
+      if (v.isWrongWay) {
+        v.group.rotation.y = Math.PI;
+        v.speed = 28 + Math.random() * 10;
+      } else {
+        v.group.rotation.y = 0;
+        v.speed = 22 + Math.random() * 12;
+      }
+      this.vehicles.push(v);
+    });
+  }
+
   reset() {
     for (const v of this.vehicles) {
       this.scene.remove(v.group);
@@ -159,5 +182,6 @@ export class TrafficManager {
     this.vehicles = [];
     this.vipCar = null;
     this.spawnTimer = 0;
+    this.initHighwayTraffic(0);
   }
 }

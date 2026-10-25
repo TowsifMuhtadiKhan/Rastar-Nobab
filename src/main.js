@@ -791,9 +791,24 @@ class Game {
         this.screenShake = 0.55;
         this.effects.createCrashSparks(pBounds.x, 0.8, pBounds.z, 20);
 
+        let customGali = null;
+        let starWord = 'ধপাস!';
+        if (car.type === 'cng') {
+          const cngGalis = [
+            'মিটার চলে না মামা! ফিক্সড ৩০০ টাকা!',
+            'সিএনজি কি খেলনা গাড়ি পাইছেন?! খাঁচা ভাইঙ্গা দিলেন!',
+            'গ্যাস নাই সিলিন্ডারে, আবার পিছে গুঁতা মারেন!',
+            'আরে ভাই দেইখা চালান! গ্যাস সিলিন্ডার ব্লাস্ট হইব তো!',
+            'সিএনজিওয়ালার সাথে টক্কর?! মিরপুর ১০ চেনেন?!',
+            'রাগ করলা? সিএনজির সামনে এমন ভাব লন ক্যান?!'
+          ];
+          customGali = cngGalis[Math.floor(Math.random() * cngGalis.length)];
+          starWord = Math.random() > 0.5 ? 'ধপাস!' : 'পটাস!';
+        }
+
         // Comic DHAPASH Impact & Dhaka Street Gali!
         const gali = this.effects.createDhapashImpact(
-          car.group.position.x, 1.2, car.group.position.z, this.camera, 'ধপাস!', null, 250
+          car.group.position.x, 1.2, car.group.position.z, this.camera, starWord, customGali, 250
         );
         this.sound.speakGali(gali);
         this.hud.showSpeech(gali);

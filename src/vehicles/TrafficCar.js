@@ -214,31 +214,126 @@ export class TrafficCar {
     this.addWheel(0.92, 0.38, 1.45, 0.38);
   }
 
-  // 4. Green CNG Auto-Rickshaw
+  // 4. Green CNG Auto-Rickshaw (সিএনজি অটোরিকশা) with Iron Cage Grille & Chrome Headlight
   initCNGModel() {
-    this.width = 1.4;
-    this.length = 2.8;
-    this.height = 1.7;
+    this.width = 1.36;
+    this.length = 2.75;
+    this.height = 1.72;
 
-    const cngTex = (typeof TextureFactory.createCNGTexture === 'function')
-      ? TextureFactory.createCNGTexture() : null;
-    const bodyGeo = new THREE.BoxGeometry(this.width, this.height, this.length);
-    const cngMat = new THREE.MeshStandardMaterial({
-      map: cngTex,
-      color: 0x15803d,
-      roughness: 0.4
+    const sideTex = (typeof TextureFactory.createCNGSideTexture === 'function')
+      ? TextureFactory.createCNGSideTexture() : null;
+    const rearTex = (typeof TextureFactory.createCNGRearTexture === 'function')
+      ? TextureFactory.createCNGRearTexture() : null;
+
+    const greenMat = new THREE.MeshStandardMaterial({
+      color: 0x16a34a,
+      roughness: 0.45,
+      metalness: 0.15
     });
-    const body = new THREE.Mesh(bodyGeo, cngMat);
-    body.position.y = this.height / 2 + 0.25;
-    body.castShadow = true;
-    this.group.add(body);
 
-    this.addWheel(0, 0.3, -1.1, 0.3);
-    this.addWheel(-0.65, 0.3, 0.9, 0.3);
-    this.addWheel(0.65, 0.3, 0.9, 0.3);
+    const sideMat = new THREE.MeshStandardMaterial({
+      map: sideTex,
+      color: 0x16a34a,
+      roughness: 0.45
+    });
+
+    const rearMat = new THREE.MeshStandardMaterial({
+      map: rearTex,
+      roughness: 0.5
+    });
+
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0x18181b,
+      roughness: 0.8
+    });
+
+    // 1. Lower Green Body & Chassis Base
+    const chassisGeo = new THREE.BoxGeometry(this.width, 0.72, this.length * 0.96);
+    const chassis = new THREE.Mesh(chassisGeo, greenMat);
+    chassis.position.y = 0.62;
+    chassis.castShadow = true;
+    chassis.receiveShadow = true;
+    this.group.add(chassis);
+
+    // 2. Passenger Cabin with Wire Mesh Cage on sides and Rear Hatch
+    // [+X, -X, +Y, -Y, +Z, -Z]
+    const cabinMaterials = [sideMat, sideMat, roofMat, greenMat, rearMat, greenMat];
+    const cabinGeo = new THREE.BoxGeometry(this.width * 0.98, 0.88, 1.6);
+    const cabin = new THREE.Mesh(cabinGeo, cabinMaterials);
+    cabin.position.set(0, 1.25, 0.45);
+    cabin.castShadow = true;
+    this.group.add(cabin);
+
+    // 3. Driver Front Cockpit & Slanted Tapered Nose
+    const noseGeo = new THREE.BoxGeometry(this.width * 0.88, 0.65, 0.95);
+    const nose = new THREE.Mesh(noseGeo, greenMat);
+    nose.position.set(0, 0.76, -0.85);
+    nose.castShadow = true;
+    this.group.add(nose);
+
+    // 4. Slanted Windshield with Glass Reflection
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x93c5fd,
+      roughness: 0.1,
+      metalness: 0.2,
+      transparent: true,
+      opacity: 0.75
+    });
+    const windshield = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.62), glassMat);
+    windshield.position.set(0, 1.28, -0.62);
+    windshield.rotation.x = -0.32;
+    this.group.add(windshield);
+
+    // 5. Curved Vinyl Roof (কালো ছাদ)
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(this.width * 1.02, 0.14, this.length * 0.98), roofMat);
+    roof.position.set(0, 1.72, 0.05);
+    roof.castShadow = true;
+    this.group.add(roof);
+
+    // 6. Iconic Front Chrome Circular Headlight (সিঙ্গেল হেডলাইট)
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.95, roughness: 0.1 });
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.12, 16), lampMat);
+    lamp.rotation.x = Math.PI / 2;
+    lamp.position.set(0, 0.72, -1.35);
+    this.group.add(lamp);
+
+    // Headlight Lens Glow
+    const lensMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.09, 16), lensMat);
+    lens.position.set(0, 0.72, -1.42);
+    lens.rotation.y = Math.PI;
+    this.group.add(lens);
+
+    // 7. Metal Wire Cage Bars (Real 3D Iron Security Grille)
+    const grillMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
+    [-this.width / 2 - 0.01, this.width / 2 + 0.01].forEach(sideX => {
+      // 3 Horizontal rails
+      for (let y = 1.02; y <= 1.48; y += 0.22) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 1.4), grillMat);
+        rail.position.set(sideX, y, 0.45);
+        this.group.add(rail);
+      }
+      // 4 Vertical bars
+      for (let z = -0.15; z <= 1.05; z += 0.38) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.55, 0.025), grillMat);
+        bar.position.set(sideX, 1.25, z);
+        this.group.add(bar);
+      }
+    });
+
+    // 8. Front Black Bumper
+    const bumperMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.6 });
+    const fBumper = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.16, 0.2), bumperMat);
+    fBumper.position.set(0, 0.38, -1.32);
+    this.group.add(fBumper);
+
+    // 9. 3 Wheels (1 Front, 2 Rear)
+    this.addWheel(0, 0.28, -0.98, 0.28);
+    this.addWheel(-0.64, 0.28, 0.75, 0.28);
+    this.addWheel(0.64, 0.28, 0.75, 0.28);
   }
 
-  initSedanModel() {
+    initSedanModel() {
     this.width = 1.88;
     this.length = 4.6;
     this.height = 1.45;

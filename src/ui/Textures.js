@@ -964,50 +964,126 @@ export class TextureFactory {
 
   // 9. Green CNG Auto-Rickshaw Wire Mesh Livery (Cached)
   static createCNGTexture() {
-    if (this._cachedCNGTex) return this._cachedCNGTex;
+    return this.createCNGSideTexture();
+  }
+
+  static createCNGSideTexture() {
+    if (this._cachedCNGSideTex) return this._cachedCNGSideTex;
 
     const canvas = document.createElement('canvas');
     canvas.width = 512;
-    canvas.height = 512;
+    canvas.height = 320;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#15803d';
-    ctx.fillRect(0, 0, 512, 512);
+    // Rich Dhaka Green Paint
+    ctx.fillStyle = '#16a34a';
+    ctx.fillRect(0, 0, 512, 320);
 
-    ctx.fillStyle = '#eab308';
-    ctx.fillRect(0, 240, 512, 50);
+    // Yellow Accent Stripe
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(0, 160, 512, 32);
 
-    ctx.strokeStyle = 'rgba(24, 24, 27, 0.7)';
-    ctx.lineWidth = 2;
-    for (let x = 0; x < 512; x += 16) {
+    // Dark Door Frame & Passenger Cage Cutout
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(140, 20, 280, 130);
+
+    // Passenger Silhouette inside Cage
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.arc(230, 80, 24, 0, Math.PI * 2);
+    ctx.arc(330, 80, 24, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Iconic Iron Wire Mesh Grill on Passenger Window
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2.5;
+    for (let x = 140; x <= 420; x += 18) {
       ctx.beginPath();
-      ctx.moveTo(x, 40);
-      ctx.lineTo(x + 100, 240);
+      ctx.moveTo(x, 20);
+      ctx.lineTo(x, 150);
       ctx.stroke();
+    }
+    for (let y = 20; y <= 150; y += 22) {
       ctx.beginPath();
-      ctx.moveTo(x, 240);
-      ctx.lineTo(x + 100, 40);
+      ctx.moveTo(140, y);
+      ctx.lineTo(420, y);
       ctx.stroke();
     }
 
+    // Driver Front Window opening
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(20, 30, 95, 115);
+
+    // License Registration Plate
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(160, 220, 220, 50);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(160, 220, 220, 50);
+
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 4;
-    ctx.font = 'bold 36px sans-serif';
-    ctx.strokeText('ঢাকা মেট্রো-থ', 256, 330);
-    ctx.fillText('ঢাকা মেট্রো-থ', 256, 330);
+    ctx.font = 'bold 24px "Hind Siliguri", sans-serif';
+    ctx.fillText('ঢাকা মেট্রো-থ ১২-৩৪৫৬', 270, 255);
 
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillStyle = '#ef4444';
-    ctx.fillText('সি এন জি (৪ স্ট্রোক)', 256, 370);
+    // Fare Meter Graphic
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(30, 180, 75, 45);
+    ctx.fillStyle = '#22c55e';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('৳ ৮০.০০', 67, 208);
 
     const tex = new THREE.CanvasTexture(canvas);
-    this._cachedCNGTex = tex;
+    this._cachedCNGSideTex = tex;
     return tex;
   }
 
+  static createCNGRearTexture() {
+    if (this._cachedCNGRearTex) return this._cachedCNGRearTex;
 
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // Green rear engine hatch
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Engine Ventilation Louvers (কালো গ্রিল ভেন্ট)
+    ctx.fillStyle = '#0f172a';
+    for (let y = 40; y < 140; y += 14) {
+      ctx.fillRect(35, y, 186, 7);
+    }
+
+    // Slogan Plate: "মিটার চলে না মামা!"
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(30, 155, 196, 42);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(30, 155, 196, 42);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#dc2626';
+    ctx.font = 'bold 18px "Hind Siliguri", sans-serif';
+    ctx.fillText('মিটার চলে না মামা!', 128, 183);
+
+    // Number Plate
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(45, 206, 166, 32);
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 14px "Hind Siliguri", sans-serif';
+    ctx.fillText('ঢাকা মেট্রো-থ ১১-৯৮৭৬', 128, 228);
+
+    // Red Tail lights
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(15, 190, 22, 45);
+    ctx.fillRect(219, 190, 22, 45);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    this._cachedCNGRearTex = tex;
+    return tex;
+  }
 
   // 10. Striped Canvas Awning (Canopy)
   static createShopCanopyTexture(color = '#c62828') {
