@@ -78,7 +78,6 @@ body, html {
 .hud-score-card,
 .hud-gps-card,
 .hud-top-right,
-.hud-vip-radar,
 #wrong-way-badge {
   pointer-events: auto;
 }

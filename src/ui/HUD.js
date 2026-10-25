@@ -14,8 +14,6 @@ export class HUD {
     this.elements.speedoNeedle = document.getElementById('speedo-needle');
     this.elements.speedoArc = document.getElementById('speedo-progress-arc');
     this.elements.pauseBtn = document.getElementById('btn-pause');
-    this.elements.vipTracker = document.getElementById('vip-tracker-badge');
-    this.elements.vipTrackerText = document.getElementById('vip-tracker-text');
     this.elements.batteryFill = document.getElementById('hud-battery-fill');
     this.elements.batteryText = document.getElementById('hud-battery-text');
     this.elements.decibel = document.getElementById('hud-db-value');
@@ -136,16 +134,6 @@ export class HUD {
       }
     }
 
-    // 4. VIP Car Distance Tracker (Exact Screenshot Match: Card with ভিআইপি ▲ গাড়ি এবং দূরত্ব)
-    const vipDist = trafficManager.getVIPDistance(playerPos.z);
-    if (this.elements.vipTracker && this.elements.vipTrackerText) {
-      if (vipDist !== null && vipDist < 260) {
-        this.elements.vipTracker.style.display = 'flex';
-        this.elements.vipTrackerText.innerText = `${toBengaliNumber(vipDist)} মি`;
-      } else {
-        this.elements.vipTracker.style.display = 'none';
-      }
-    }
 
     // 5. Real Dhaka Highway Map Stations Tracker
     if (mapData) {
