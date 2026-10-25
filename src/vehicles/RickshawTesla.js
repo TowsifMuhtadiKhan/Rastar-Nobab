@@ -27,6 +27,7 @@ export class RickshawTesla {
     this.battery = 100;
     this.health = 100;
     this.autoCruiseEnabled = true;
+    this.boostTimer = 0;
 
     // Animated fairy lights array
     this.fairyLights = [];
@@ -851,13 +852,26 @@ export class RickshawTesla {
     }
   }
 
+  activateTurboBoost(duration = 2.8) {
+    this.boostTimer = duration;
+    // Instant rocket impulse! Immediate surge into high speed
+    this.speed = Math.max(this.speed + 22, 65);
+    if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
+  }
+
   update(delta, input, activeChourastas = []) {
-    const cruiseTarget = this.autoCruiseEnabled ? 30 : 0;
-    if (input.boost) {
+    // Update active turbo boost timer
+    if (this.boostTimer > 0) {
+      this.boostTimer -= delta;
+    }
+    const isBoosting = !!input.boost || (this.boostTimer > 0);
+
+    const cruiseTarget = this.autoCruiseEnabled ? 32 : 0;
+    if (isBoosting) {
       // TURBO NITRO OVERDRIVE: Rocket boost propulsion up to boostMaxSpeed!
-      this.speed += this.acceleration * 2.4 * delta;
+      this.speed += this.acceleration * 3.2 * delta;
       if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
-      this.battery = Math.max(0, this.battery - 0.08);
+      this.battery = Math.max(0, this.battery - 0.06);
     } else if (input.forward) {
       this.speed += this.acceleration * delta;
       if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
@@ -868,9 +882,10 @@ export class RickshawTesla {
     } else {
       if (this.autoCruiseEnabled) {
         if (this.speed < cruiseTarget) {
-          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.8 * delta);
+          this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.9 * delta);
         } else if (this.speed > this.maxSpeed) {
-          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 2.2 * delta);
+          // Smooth aerodynamic deceleration from turbo
+          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.4 * delta);
         }
       } else {
         if (this.speed > 0) {
@@ -1017,7 +1032,6 @@ export class RickshawTesla {
     }
 
     // Animate Fast & Furious Nitro Exhaust Flames & Fire System
-    const isBoosting = !!input.boost;
     const isDriving = input.forward && this.speed > 3;
     const isHighSpeed = Math.abs(this.speed) > 30;
 

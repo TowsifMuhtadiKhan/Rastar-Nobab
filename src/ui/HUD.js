@@ -202,14 +202,14 @@ export class HUD {
     }
   }
 
-  showSpeech(text, speaker = 'other', role = null) {
+  showSpeech(text, speaker = 'other', role = null, speakAudio = true) {
     if (!text) return;
 
     const isRickshaw = (speaker === 'rickshaw' || speaker === 'player' || speaker === 'left');
 
     if (isRickshaw) {
-      // Speak with authentic Driver Voice sound & audio!
-      if (typeof window !== 'undefined' && window.__gameInstance && window.__gameInstance.sound) {
+      // Speak with authentic Driver Voice sound & audio
+      if (speakAudio && typeof window !== 'undefined' && window.__gameInstance && window.__gameInstance.sound) {
         window.__gameInstance.sound.speakDriverVoice(text);
       }
 

@@ -61,7 +61,7 @@ class Game {
   initThree() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xdce8ed);
-    this.scene.fog = new THREE.FogExp2(0xdce8ed, 0.007);
+    this.scene.fog = new THREE.FogExp2(0xdce8ed, 0.0028);
 
     this.camera = new THREE.PerspectiveCamera(
       68, // Optimal panoramic arcade FOV: expansive view without edge fisheye distortion
@@ -76,16 +76,16 @@ class Game {
       powerPreference: 'high-performance',
       preserveDrawingBuffer: true // Required for capturing crash screenshot for newspaper!
     });
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.0); // True Retina HD crispness on mobile
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5); // True Retina HD crispness on mobile
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(dpr);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap; // Ultra-fast shadow mapping
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Beautiful soft shadow mapping
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.25;
     this.container.appendChild(this.renderer.domElement);
 
-    const sunLight = new THREE.DirectionalLight(0xfff8e7, 2.4);
+    const sunLight = new THREE.DirectionalLight(0xfff8e7, 2.6);
     sunLight.position.set(30, 55, -20);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
@@ -100,7 +100,7 @@ class Game {
     this.scene.add(sunLight);
     this.sunLight = sunLight;
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x475569, 1.25);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x475569, 1.35);
     this.scene.add(hemiLight);
   }
 
@@ -590,15 +590,33 @@ class Game {
     this.hookTouchBtn('btn-left', (active) => { this.input.left = active; });
     this.hookTouchBtn('btn-right', (active) => { this.input.right = active; });
     this.hookTouchBtn('btn-brake', (active) => { this.input.backward = active; });
+    const triggerTurbo = () => {
+      this.input.boost = true;
+      if (this.player) this.player.activateTurboBoost(2.8);
+      this.sound.playTurboSound();
+      this.screenShake = 0.55;
+      this.effects.showFloatingText('⚡ টার্বো অ্যাক্টিভ!', '#00f0ff', '24px');
+      this.hud.showSpeech('⚡ টার্বো স্পিড অ্যাক্টিভ! সাইড দেন নবাব যাইতাছে!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা', false);
+    };
+
     this.hookTouchBtn('btn-boost', (active) => {
       this.input.boost = active;
-      if (active) {
-        this.sound.playTurboSound();
-        this.effects.showFloatingText('⚡ টার্বো অ্যাক্টিভ!', '#00f0ff', '24px');
-        this.hud.showSpeech('⚡ টার্বো স্পিড অ্যাক্টিভ! সাইড দেন নবাব যাইতাছে!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
-      }
+      if (active) triggerTurbo();
     });
+
+    const boostBtn = document.getElementById('btn-boost');
+    if (boostBtn) {
+      boostBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerTurbo(); });
+    }
     this.hookTouchBtn('btn-horn', (active) => { this.triggerHorn(active); });
+    const hornBtn = document.getElementById('btn-horn');
+    if (hornBtn) {
+      hornBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerHorn(true);
+        setTimeout(() => this.triggerHorn(false), 220);
+      });
+    }
 
     // On-Screen Zoom Controls & Pinch-To-Zoom System
     const btnZoomIn = document.getElementById('btn-zoom-in');
@@ -734,7 +752,7 @@ class Game {
 
       if (Math.random() > 0.45) {
         const quote = this.sound.shoutBengaliQuote();
-        this.hud.showSpeech(quote, 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        this.hud.showSpeech(quote, 'rickshaw', '🛺 নবাব রিকশাওয়ালা', false);
       }
     }
   }
@@ -1409,7 +1427,7 @@ class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
   }
 
   animate() {

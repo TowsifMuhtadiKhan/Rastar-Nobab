@@ -217,39 +217,44 @@ export class SoundManager {
     this.ensureContext();
     if (this.isMuted) return;
 
-    // 1. Studio Audio Buffer Source (Highest quality & authentic real recording)
+    // 1. Studio Audio Buffer Source (Direct to destination for maximum clarity)
     if (this.ctx && this.pepPepBuffer) {
       try {
         const src = this.ctx.createBufferSource();
         src.buffer = this.pepPepBuffer;
         const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(Math.min(1.0, this.volume * 2.2), this.ctx.currentTime);
+        gain.gain.setValueAtTime(1.0, this.ctx.currentTime);
         src.connect(gain);
-        gain.connect(this.masterGain || this.ctx.destination);
+        gain.connect(this.ctx.destination);
         src.start(0);
       } catch (e) {}
     }
 
-    // 2. Direct HTML5 Audio playback (guaranteed fallback on mobile phone speakers)
-    if (this.pepPepAudio) {
-      try {
-        this.pepPepAudio.currentTime = 0;
-        this.pepPepAudio.volume = Math.min(1.0, this.volume * 2.0);
-        this.pepPepAudio.play().catch(() => {});
-      } catch (e) {}
-    }
+    // 2. Direct HTML5 Audio playback (Guaranteed on iOS Safari & Android mobile phone speakers)
+    try {
+      const a = new Audio('/audio/pep_pep_horn.wav');
+      a.volume = 1.0;
+      const p = a.play();
+      if (p !== undefined) {
+        p.catch(() => {
+          const a2 = new Audio('/audio/auto_horn.mp3');
+          a2.volume = 1.0;
+          a2.play().catch(() => {});
+        });
+      }
+    } catch (e) {}
 
     // 3. Piercing 12V Electric Dual-Disc Synthetic Horn (loud, crisp, high-frequency for phone speakers)
-    if (this.ctx && this.masterGain) {
+    if (this.ctx) {
       try {
         const now = this.ctx.currentTime;
-        const vol = Math.min(1.0, this.volume * 1.8);
+        const vol = 1.0;
 
         // Burst 1: First "PEP!" (0.00s -> 0.09s)
-        this.triggerSingleHonkBurst(now, 0.09, 580, 720, vol);
+        this.triggerSingleHonkBurst(now, 0.095, 620, 780, vol);
 
         // Burst 2: Second "PEP!" (0.13s -> 0.23s)
-        this.triggerSingleHonkBurst(now + 0.13, 0.10, 595, 735, vol);
+        this.triggerSingleHonkBurst(now + 0.135, 0.105, 640, 800, vol);
       } catch (err) {}
     }
   }
@@ -261,7 +266,7 @@ export class SoundManager {
 
   // Helper: Generates a single metallic "PEP!" burst with dual disc harmonics and bite
   triggerSingleHonkBurst(startTime, duration, f1, f2, volume) {
-    if (!this.ctx || !this.masterGain) return;
+    if (!this.ctx) return;
 
     // Dual disc frequencies (characteristic Bangladeshi electric auto-rickshaw horn)
     [f1, f2].forEach((freq) => {
@@ -280,13 +285,14 @@ export class SoundManager {
 
       // Sharp, punchy ADSR envelope for instant "PEP" impact
       gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.linearRampToValueAtTime(0.55 * volume, startTime + 0.006);
-      gain.gain.setValueAtTime(0.55 * volume, startTime + duration - 0.02);
+      gain.gain.linearRampToValueAtTime(0.65 * volume, startTime + 0.005);
+      gain.gain.setValueAtTime(0.65 * volume, startTime + duration - 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(this.masterGain);
+      // Connect directly to destination for guaranteed loud, uncompressed playback!
+      gain.connect(this.ctx.destination);
 
       osc.start(startTime);
       osc.stop(startTime + duration + 0.01);
@@ -299,11 +305,11 @@ export class SoundManager {
       biteOsc.type = 'square';
       biteOsc.frequency.setValueAtTime(1920, startTime);
 
-      biteGain.gain.setValueAtTime(0.18 * volume, startTime);
+      biteGain.gain.setValueAtTime(0.25 * volume, startTime);
       biteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.045);
 
       biteOsc.connect(biteGain);
-      biteGain.connect(this.masterGain);
+      biteGain.connect(this.ctx.destination);
 
       biteOsc.start(startTime);
       biteOsc.stop(startTime + 0.05);
