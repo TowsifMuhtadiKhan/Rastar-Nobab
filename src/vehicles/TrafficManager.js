@@ -76,49 +76,56 @@ export class TrafficManager {
   }
 
   spawnRandomVehicle(playerZ) {
-    const laneIndex = Math.floor(Math.random() * this.lanes.length);
-    const laneX = this.lanes[laneIndex];
-    const isWrongSideLane = laneX < 0;
+    // 65% chance to spawn on player's side of highway (X > 0), 35% on opposite side (X < 0)
+    const onPlayerSide = Math.random() < 0.65;
+    const lanePool = onPlayerSide ? [3.2, 5.8, 8.8, 10.6] : [-3.2, -5.8, -8.8, -10.6];
+    const laneX = lanePool[Math.floor(Math.random() * lanePool.length)];
 
+    // Prominent Auto-Rickshaws & CNGs (60% of all traffic!)
     const rand = Math.random();
     let type = 'rickshaw';
-    if (rand < 0.24) type = 'rickshaw';    // 24% Dhaka Motor Rickshaws!
-    else if (rand < 0.44) type = 'cng';    // 20% Green CNGs
-    else if (rand < 0.62) type = 'bus';    // 18% Dhaka Local Buses
-    else if (rand < 0.73) type = 'hiace';  // 11% Microbuses
-    else if (rand < 0.82) type = 'sedan';  // 9% Private Sedans
-    else type = 'pedestrian';              // 18% Crossing Pedestrians!
+    if (rand < 0.35) type = 'rickshaw';    // 35% Dhaka Battery Auto-Rickshaw / Easybike
+    else if (rand < 0.60) type = 'cng';    // 25% Green CNG Auto-Rickshaw
+    else if (rand < 0.76) type = 'bus';    // 16% Dhaka Local Bus
+    else if (rand < 0.86) type = 'hiace';  // 10% Microbus
+    else if (rand < 0.93) type = 'sedan';  // 7% Private Sedan
+    else type = 'pedestrian';              // 7% Crossing Public
 
     const vehicle = new TrafficCar(this.scene, type);
-    const spawnZ = playerZ - (65 + Math.random() * 60);
+    const spawnZ = playerZ - (55 + Math.random() * 65);
 
     if (type === 'pedestrian') {
-      const isCrossing = Math.random() > 0.4;
-      if (isCrossing) {
-        const fromRight = Math.random() > 0.5;
-        const startX = fromRight ? 11.5 : -11.5;
-        vehicle.group.position.set(startX, 0, spawnZ);
-        vehicle.crossSpeed = fromRight ? -1.8 : 1.8;
-        vehicle.group.rotation.y = fromRight ? -Math.PI / 2 : Math.PI / 2;
-        vehicle.speed = 1.5;
-      } else {
-        // Walking or standing near median or shoulder
-        const standX = [ -10.5, -1.8, 1.8, 10.5 ][Math.floor(Math.random() * 4)];
-        vehicle.group.position.set(standX, 0, spawnZ);
-        vehicle.speed = Math.random() * 3 + 1;
-        vehicle.crossSpeed = 0;
-      }
+      const fromRight = Math.random() > 0.5;
+      const startX = fromRight ? 11.2 : -11.2;
+      vehicle.group.position.set(startX, 0, spawnZ);
+      vehicle.crossSpeed = fromRight ? -1.8 : 1.8;
+      vehicle.group.rotation.y = fromRight ? -Math.PI / 2 : Math.PI / 2;
+      vehicle.speed = 1.5;
       vehicle.isWrongWay = false;
-    } else if (isWrongSideLane) {
+    } else if (onPlayerSide) {
+      // ON THE PLAYER'S SIDE OF THE HIGHWAY:
+      // Auto-rickshaws have a 38% chance of driving on the WRONG SIDE (coming oncoming towards player)!
+      const isAuto = (type === 'rickshaw' || type === 'cng');
+      const shouldDriveWrongWay = isAuto && (Math.random() < 0.38);
+
+      vehicle.group.position.set(laneX, 0, spawnZ);
+      if (shouldDriveWrongWay) {
+        // WRONG SIDE AUTO RICKSHAW! (Driving oncoming towards player with headlight on)
+        vehicle.group.rotation.y = Math.PI;
+        vehicle.speed = 22 + Math.random() * 12;
+        vehicle.isWrongWay = true;
+      } else {
+        // RIGHT SIDE AUTO RICKSHAW! (Cruising forward in traffic flow)
+        vehicle.group.rotation.y = 0;
+        vehicle.speed = isAuto ? (20 + Math.random() * 12) : (24 + Math.random() * 22);
+        vehicle.isWrongWay = false;
+      }
+    } else {
+      // OPPOSITE ROADWAY (X < 0): Normal oncoming traffic flow
       vehicle.group.position.set(laneX, 0, spawnZ);
       vehicle.group.rotation.y = Math.PI;
-      vehicle.speed = 25 + Math.random() * 30;
+      vehicle.speed = 26 + Math.random() * 26;
       vehicle.isWrongWay = true;
-    } else {
-      vehicle.group.position.set(laneX, 0, spawnZ);
-      vehicle.group.rotation.y = 0;
-      vehicle.speed = 20 + Math.random() * 25;
-      vehicle.isWrongWay = false;
     }
 
     this.vehicles.push(vehicle);
@@ -199,21 +206,31 @@ export class TrafficManager {
   }
 
   initHighwayTraffic(playerZ) {
-    // Pre-populate with iconic Motor Rickshaws, CNG Auto-Rickshaws, and buses
-    const initialTypes = ['rickshaw', 'cng', 'bus', 'rickshaw', 'cng', 'hiace', 'sedan', 'rickshaw'];
-    initialTypes.forEach((t, i) => {
-      const v = new TrafficCar(this.scene, t);
-      const lane = this.lanes[i % this.lanes.length];
-      const z = playerZ - (30 + i * 25);
-      v.group.position.set(lane, 0, z);
-      v.isWrongWay = lane < 0;
-      if (v.isWrongWay) {
-        v.group.rotation.y = Math.PI;
-        v.speed = 28 + Math.random() * 10;
-      } else {
-        v.group.rotation.y = 0;
-        v.speed = 22 + Math.random() * 12;
-      }
+    // Immediate Dhaka Traffic with Auto-Rickshaws on both WRONG SIDE and RIGHT SIDE!
+    const trafficBlueprint = [
+      // Right-side auto rickshaw cruising ahead
+      { type: 'rickshaw', lane: 5.8, zOffset: -32, wrongWay: false, speed: 25 },
+      // WRONG-SIDE oncoming auto rickshaw on the right outer lane!
+      { type: 'rickshaw', lane: 8.8, zOffset: -60, wrongWay: true, speed: 28 },
+      // Green CNG auto rickshaw cruising on the inner lane
+      { type: 'cng', lane: 3.2, zOffset: -48, wrongWay: false, speed: 28 },
+      // WRONG-SIDE oncoming Green CNG auto rickshaw near shoulder!
+      { type: 'cng', lane: 10.6, zOffset: -95, wrongWay: true, speed: 26 },
+      // Local Dhaka Bus ahead
+      { type: 'bus', lane: 5.8, zOffset: -85, wrongWay: false, speed: 32 },
+      // Normal oncoming traffic on opposite roadway
+      { type: 'rickshaw', lane: -5.8, zOffset: -40, wrongWay: true, speed: 26 },
+      { type: 'bus', lane: -8.8, zOffset: -75, wrongWay: true, speed: 38 },
+      { type: 'cng', lane: -3.2, zOffset: -110, wrongWay: true, speed: 30 }
+    ];
+
+    trafficBlueprint.forEach((t) => {
+      const v = new TrafficCar(this.scene, t.type);
+      const z = playerZ + t.zOffset;
+      v.group.position.set(t.lane, 0, z);
+      v.isWrongWay = t.wrongWay;
+      v.group.rotation.y = t.wrongWay ? Math.PI : 0;
+      v.speed = t.speed;
       this.vehicles.push(v);
     });
   }

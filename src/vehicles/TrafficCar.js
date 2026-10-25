@@ -334,6 +334,19 @@ export class TrafficCar {
       fl.position.set(i, 1.78, 0.55);
       this.group.add(fl);
     }
+
+    // 8. Front Chrome Headlight with Warm Beam Glow
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, roughness: 0.1 });
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.12, 14), lampMat);
+    lamp.rotation.x = Math.PI / 2;
+    lamp.position.set(0, 0.76, -0.96);
+    this.group.add(lamp);
+
+    const lensMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.09, 14), lensMat);
+    lens.position.set(0, 0.76, -1.03);
+    lens.rotation.y = Math.PI;
+    this.group.add(lens);
   }
 
   // 4. Green CNG Auto-Rickshaw (সিএনজি অটোরিকশা) with Iron Cage Grille & Chrome Headlight
