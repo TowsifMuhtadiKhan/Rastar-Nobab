@@ -273,13 +273,13 @@ export class DhakaProps {
     const spawnZ = playerZ - (60 + Math.random() * 80);
     const rand = Math.random();
 
-    // Place either on lane edges, shoulders, or divider sides
+    // Place on shoulders and sidewalk edges to avoid blocking the driving lane completely
     const spawnX = [
       -10.5, // Far left sidewalk edge
-      -6.8,  // Left outer lane shoulder
-      -1.8,  // Next to central median (wrong way side)
-      1.8,   // Next to central median (right way side)
-      7.0,   // Right driving lane edge
+      -7.5,  // Left outer lane shoulder
+      -1.4,  // Next to central median (wrong way side)
+      1.4,   // Next to central median (right way side)
+      7.8,   // Right driving lane shoulder
       10.5   // Right sidewalk edge
     ][Math.floor(Math.random() * 6)];
 

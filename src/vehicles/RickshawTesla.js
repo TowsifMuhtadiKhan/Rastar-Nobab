@@ -881,15 +881,28 @@ export class RickshawTesla {
   }
 
   update(delta, input, activeChourastas = []) {
+    // Check if player is near any active Chourasta intersection
+    let isAtChourasta = false;
+    let currentChourasta = null;
+    if (activeChourastas && activeChourastas.length > 0) {
+      for (const ch of activeChourastas) {
+        if (Math.abs(this.group.position.z - ch.z) < 32.0) {
+          isAtChourasta = true;
+          currentChourasta = ch;
+          break;
+        }
+      }
+    }
+
     // Update active turbo boost timer
     if (this.boostTimer > 0) {
       this.boostTimer -= delta;
     }
     const isBoosting = !!input.boost || (this.boostTimer > 0);
 
-    const cruiseTarget = this.autoCruiseEnabled ? 24 : 0;
+    const cruiseTarget = this.autoCruiseEnabled ? 26 : 0;
     if (isBoosting) {
-      // TURBO NITRO OVERDRIVE: Rocket boost propulsion up to boostMaxSpeed!
+      // TURBO NITRO OVERDRIVE
       this.speed += this.acceleration * 2.2 * delta;
       if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
       this.battery = Math.max(0, this.battery - 0.05);
@@ -905,7 +918,6 @@ export class RickshawTesla {
         if (this.speed < cruiseTarget) {
           this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.8 * delta);
         } else if (this.speed > this.maxSpeed) {
-          // Smooth aerodynamic deceleration from turbo
           this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 1.5 * delta);
         }
       } else {
@@ -918,23 +930,19 @@ export class RickshawTesla {
       this.battery = Math.max(0, this.battery - 0.015);
     }
 
-    // 1. Steering & Heading Controls (Authentic 3D Vehicle Physics & Natural U-Turn matching baperrasta.com)
+    // 1. Steering & Heading Controls
     if (this.isUTurning) {
+      // 180° Power Drift U-Turn
       this.uTurnTimer += delta;
       const turnProgress = Math.min(1.0, this.uTurnTimer / this.uTurnDuration);
-      // Smooth sinusoidal power-slide drift easing
       const smoothProgress = 0.5 - 0.5 * Math.cos(turnProgress * Math.PI);
       
       this.heading = this.uTurnStartHeading + this.uTurnDirection * Math.PI * smoothProgress;
-      // Authentic heavy 3-wheeler drift lean
-      this.tilt = -this.uTurnDirection * 0.42 * Math.sin(smoothProgress * Math.PI);
-      // Handlebar locked at countersteer
+      this.tilt = -this.uTurnDirection * 0.38 * Math.sin(smoothProgress * Math.PI);
       this.forkGroup.rotation.y = -this.uTurnDirection * this.maxSteerAngle * 1.5;
       
-      // Controlled power-slide lateral displacement across the road
-      this.group.position.x += this.uTurnDirection * 9.5 * Math.sin(smoothProgress * Math.PI) * delta;
+      this.group.position.x += this.uTurnDirection * 10.5 * Math.sin(smoothProgress * Math.PI) * delta;
       
-      // Maintain forward momentum during the drift arc
       const driftSpeed = (this.speed / 3.6) * delta;
       this.group.position.z += -Math.cos(this.heading) * driftSpeed;
 
@@ -950,43 +958,74 @@ export class RickshawTesla {
           this.onTurnComplete('uturn', { name: 'ইউ-টার্ন মোড়' });
         }
       }
+    } else if (this.isTurning) {
+      // 90° Intersection Crossroad Turn Navigation
+      this.turnProgress += delta * 1.25;
+      const p = Math.min(1.0, this.turnProgress);
+      const sign = (this.turnDirection === 'left') ? -1 : 1;
+
+      // Smooth sweeping arc into the crossroad
+      this.group.position.x += sign * 18.0 * (1.0 - p * 0.4) * delta;
+      this.group.position.z += -(this.speed / 3.6) * (1.0 - p * 0.7) * delta;
+
+      // Dynamic 90° yaw rotation
+      this.heading = this.baseHeading + sign * (Math.PI / 2) * Math.sin(p * Math.PI * 0.5);
+      this.tilt = -sign * Math.sin(p * Math.PI) * 0.20;
+      this.forkGroup.rotation.y = -sign * this.maxSteerAngle * 1.35;
+
+      if (this.turnProgress >= 1.0) {
+        this.isTurning = false;
+        this.heading = this.baseHeading;
+        this.tilt = 0;
+        this.steerAngle = 0;
+        this.forkGroup.rotation.y = 0;
+        this.group.position.x = sign * 4.2;
+        if (this.turnChourasta) {
+          this.group.position.z = this.turnChourasta.z - 36.0; // Advance past intersection
+        }
+        if (this.onTurnComplete) {
+          this.onTurnComplete(this.turnDirection, this.turnChourasta?.stationData);
+        }
+      }
     } else {
+      // Normal Driving with Immediate, Responsive Left / Right Steering
       let targetSteer = 0;
       if (input.left) targetSteer -= this.maxSteerAngle;
       if (input.right) targetSteer += this.maxSteerAngle;
 
-      // Silky smooth, progressive steering interpolation (gentle, natural and controlled)
-      this.steerAngle += (targetSteer - this.steerAngle) * 6.5 * delta;
+      // Fast, responsive steering interpolation (snappy 14.0 rate)
+      this.steerAngle += (targetSteer - this.steerAngle) * 14.0 * delta;
 
-      // Direction multiplier along Z and X based on road heading (0 vs PI)
       const forwardDirZ = (Math.cos(this.baseHeading) > 0) ? -1 : 1;
       const steerDirX = (Math.cos(this.baseHeading) > 0) ? 1 : -1;
 
       const steerFactor = this.steerAngle / this.maxSteerAngle;
-      const speedMag = Math.abs(this.speed);
-      const speedFactor = Math.max(0.35, Math.min(1.15, speedMag / 24.0));
 
-      // Smooth, natural lateral lane movement (reduced from 16.5 to 8.2 for perfectly controlled dodging)
-      const lateralSpeed = 8.2; // m/s
-      this.group.position.x += steerDirX * steerFactor * lateralSpeed * speedFactor * delta;
+      // Crisp lateral velocity: 13.5 m/s instant response to touch/keys
+      const lateralSpeed = 13.5;
+      this.group.position.x += steerDirX * steerFactor * lateralSpeed * delta;
 
       // Forward travel along road
       const forwardMove = (this.speed / 3.6) * delta;
       this.group.position.z += forwardDirZ * forwardMove;
 
-      // Gentle authentic 3-wheeler body slip yaw:
-      // While changing lanes, vehicle nose smoothly points slightly into the turn (~7° max),
-      // and immediately straightens out when steering is released!
-      const targetBodyYaw = steerDirX * (-steerFactor * 0.12);
+      // If user is steering while stationary or slow, give gentle rolling momentum to maneuver around obstacles
+      if ((input.left || input.right) && Math.abs(this.speed) < 14) {
+        this.speed = Math.min(18, this.speed + 18.0 * delta);
+      }
+
+      // Authentic 3-wheeler body slip yaw:
+      const targetBodyYaw = steerDirX * (-steerFactor * 0.20);
       this.heading = this.baseHeading + targetBodyYaw;
 
-      // Gentle Bangladeshi 3-Wheeler Body Roll & Suspension Lean (smooth, subtle, and realistic)
-      const speedRatio = Math.min(1.0, speedMag / 30.0);
-      const targetTilt = -steerFactor * (0.09 + speedRatio * 0.06);
-      this.tilt += (targetTilt - this.tilt) * 8.0 * delta;
+      // Authentic Bangladeshi 3-Wheeler Body Roll & Suspension Lean
+      const speedMag = Math.abs(this.speed);
+      const speedRatio = Math.min(1.2, speedMag / 30.0);
+      const targetTilt = -steerFactor * (0.14 + speedRatio * 0.08);
+      this.tilt += (targetTilt - this.tilt) * 12.0 * delta;
 
       // Front Wheel & Handlebar turn angle (turns with driver steering)
-      this.forkGroup.rotation.y = -this.steerAngle * 1.1;
+      this.forkGroup.rotation.y = -this.steerAngle * 1.35;
     }
 
     // Acceleration Squat & Braking Nose-Dive on Front Shocks
@@ -1016,7 +1055,7 @@ export class RickshawTesla {
       ? (Math.sin(Date.now() * 0.014) * (Math.abs(this.speed) / 50) * 0.014)
       : 0;
 
-    // 3D Vehicle World Orientation: Complete smooth body rotation
+    // 3D Vehicle World Orientation
     this.group.rotation.y = this.heading;
     this.group.rotation.z = this.tilt + rollWobble;
     this.group.position.y = surfaceHeight + roadBounce;
@@ -1027,29 +1066,16 @@ export class RickshawTesla {
     this.leftRearWheel.rotation.x += spin;
     this.rightRearWheel.rotation.x += spin;
 
-    // Check if player is near any active Chourasta intersection
-    let isAtChourasta = false;
-    let currentChourasta = null;
-    if (activeChourastas && activeChourastas.length > 0) {
-      for (const ch of activeChourastas) {
-        if (Math.abs(this.group.position.z - ch.z) < 28.0) {
-          isAtChourasta = true;
-          currentChourasta = ch;
-          break;
-        }
-      }
-    }
-
-    // Outer Street & Sidewalk Boundaries with smooth deflection
-    const maxBoundX = isAtChourasta ? 36.0 : 17.2;
+    // Outer Street & Sidewalk Boundaries
+    const maxBoundX = isAtChourasta ? 36.0 : 18.0;
     if (this.group.position.x > maxBoundX) {
       this.group.position.x = maxBoundX;
-      this.speed = Math.max(0, this.speed - this.friction * 2.5 * delta);
+      this.speed = Math.max(0, this.speed - this.friction * delta);
     } else if (this.group.position.x < -maxBoundX) {
       this.group.position.x = -maxBoundX;
-      this.speed = Math.max(0, this.speed - this.friction * 2.5 * delta);
-
+      this.speed = Math.max(0, this.speed - this.friction * delta);
     }
+
     // Roundabout island physical repulsion at (0, 0, ch.z)
     if (isAtChourasta && currentChourasta) {
       const dx = this.group.position.x;
@@ -1061,30 +1087,6 @@ export class RickshawTesla {
         this.group.position.z = currentChourasta.z + Math.sin(pushAngle) * 2.4;
         this.speed *= 0.85;
         if (this.onRoundaboutBump) this.onRoundaboutBump();
-      }
-    }
-
-    // Dynamic 90-degree intersection turn animation (only when triggered via UI navigation)
-    if (this.isTurning) {
-      this.turnProgress += delta * 1.6;
-      const p = Math.min(1.0, this.turnProgress);
-      const sign = (this.turnDirection === 'left') ? -1 : 1;
-
-      // Smooth arc into the crossroad
-      this.group.position.x += sign * 18.0 * delta * (1.0 - p * 0.4);
-
-      // Dynamic drift yaw rotation
-      this.group.rotation.y = sign * (Math.PI / 2) * Math.sin(p * Math.PI * 0.5);
-      this.group.rotation.z = -sign * Math.sin(p * Math.PI) * 0.16;
-
-      if (this.turnProgress >= 1.0) {
-        this.isTurning = false;
-        this.group.rotation.y = 0;
-        this.group.rotation.z = 0;
-        this.group.position.x = sign * 4.2;
-        if (this.onTurnComplete) {
-          this.onTurnComplete(this.turnDirection, this.turnChourasta?.stationData);
-        }
       }
     }
 

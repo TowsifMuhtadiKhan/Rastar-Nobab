@@ -828,7 +828,7 @@ class Game {
 
     // Smooth chase camera following vehicle road axis (0 or PI) during normal driving,
     // and performing a cinematic 180° sweep during U-Turn!
-    const targetCamH = this.player.isUTurning 
+    const targetCamH = (this.player.isUTurning || this.player.isTurning)
       ? this.player.heading 
       : (this.player.baseHeading !== undefined ? this.player.baseHeading : 0);
 
