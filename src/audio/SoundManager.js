@@ -80,6 +80,9 @@ export class SoundManager {
   }
 
   init() {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
     if (this.ctx) return;
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -467,78 +470,26 @@ export class SoundManager {
     return 'Arey bhai dekhe chalan! Rasta ki tor baper?!';
   }
 
-  // Voice Speech Synthesis for Dhaka Street Gali
+  // Voice Speech Synthesis for Dhaka Street Gali (AUTO VOICE PERMANENTLY DISABLED)
   speakGali(text) {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
     if (this.isMuted) return;
-    const now = Date.now();
-    if (now - (this.lastVoiceTime || 0) < 3200) return; // Strict throttle: no spamming speech!
-    this.lastVoiceTime = now;
 
-    // 1. ALWAYS play real audible shouted voice audio clip
+    // Play subtle audio tone only, NO synthetic TTS voice
     this.playGaliShoutSound();
-
-    // 2. Browser Voice Speech: Cancel any queued speech backlog first so speech NEVER plays continuously!
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const voices = window.speechSynthesis.getVoices();
-      const bnVoice = voices.find(v => v.lang && (v.lang.startsWith('bn') || v.lang.includes('Bengali') || v.lang.includes('Bangla')));
-
-      let utt;
-      if (bnVoice) {
-        const clean = text.replace(/[^ঀ-৿a-zA-Z0-9\s!?,]/g, '');
-        utt = new SpeechSynthesisUtterance(clean);
-        utt.voice = bnVoice;
-        utt.lang = bnVoice.lang;
-      } else {
-        // Universal fallback: speak phonetic Banglish so Windows/Chrome ALWAYS outputs audible speech!
-        const banglish = this.getBanglishTranslation(text);
-        utt = new SpeechSynthesisUtterance(banglish);
-        utt.lang = 'en-US';
-      }
-
-      utt.rate = 1.25;
-      utt.pitch = 1.25;
-      utt.volume = 1.0;
-
-      window.speechSynthesis.speak(utt);
-    } catch (e) {}
   }
 
-  // Authentic High-Energy Rickshawala Driver Voice Speech & Audio
+  // Authentic High-Energy Rickshawala Driver Tone (AUTO VOICE PERMANENTLY DISABLED)
   speakDriverVoice(text) {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
     if (this.isMuted) return;
-    const now = Date.now();
-    if (now - (this.lastDriverVoiceTime || 0) < 3200) return; // Strict throttle: no spamming!
-    this.lastDriverVoiceTime = now;
 
-    // 1. Play energetic driver horn/bell tone
+    // Play energetic driver bell/horn tone only, NO synthetic TTS voice
     this.playDriverShoutSound();
-
-    // 2. Browser Voice Speech Output: Clear any pending speech backlog
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const voices = window.speechSynthesis.getVoices();
-      const bnVoice = voices.find(v => v.lang && (v.lang.startsWith('bn') || v.lang.includes('Bengali') || v.lang.includes('Bangla')));
-
-      let utt;
-      if (bnVoice) {
-        const clean = text.replace(/[^ঀ-৿a-zA-Z0-9\s!?,]/g, '');
-        utt = new SpeechSynthesisUtterance(clean);
-        utt.voice = bnVoice;
-        utt.lang = bnVoice.lang;
-      } else {
-        const banglish = this.getDriverBanglishTranslation(text);
-        utt = new SpeechSynthesisUtterance(banglish);
-        utt.lang = 'en-US';
-      }
-
-      utt.rate = 1.28;
-      utt.pitch = 1.38; // Energetic, sharp driver tone
-      utt.volume = 1.0;
-      window.speechSynthesis.speak(utt);
-    } catch (e) {}
   }
 
   getDriverBanglishTranslation(bnText) {
