@@ -318,6 +318,122 @@ body, html {
   transform: translateY(0);
 }
 
+/* ========================================================================= */
+/* DUAL DIALOGUE SYSTEM: RICKSHAWALA (LEFT) VS OTHER PERSON (RIGHT)          */
+/* ========================================================================= */
+.speech-dock {
+  position: absolute;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 280px;
+  min-width: 170px;
+  padding: 8px 14px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Left: Rickshawala / Nawab */
+.speech-dock-left {
+  top: 115px;
+  left: 20px;
+  background: linear-gradient(135deg, rgba(8, 47, 73, 0.94), rgba(15, 23, 42, 0.92));
+  border: 2px solid #00f0ff;
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 240, 255, 0.4);
+  transform: translateX(-24px) scale(0.96);
+}
+
+.speech-dock-left.visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+/* Right: Other Person (Pedestrian / Bus / Police / Shopkeeper) */
+.speech-dock-right {
+  top: 240px;
+  right: 20px;
+  background: linear-gradient(135deg, rgba(69, 10, 10, 0.94), rgba(24, 15, 15, 0.92));
+  border: 2px solid #ef4444;
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(239, 68, 68, 0.45);
+  transform: translateX(24px) scale(0.96);
+  text-align: right;
+  align-items: flex-end;
+}
+
+.speech-dock-right.visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.speech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.speech-badge-rickshaw {
+  background: rgba(0, 240, 255, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 240, 255, 0.45);
+}
+
+.speech-badge-other {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+.speech-content {
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  word-break: break-word;
+}
+
+.speech-dock-left .speech-content {
+  color: #e0f2fe;
+}
+
+.speech-dock-right .speech-content {
+  color: #fee2e2;
+}
+
+@media (max-width: 640px) {
+  .speech-dock-left {
+    top: 96px;
+    left: 8px;
+    max-width: 190px;
+    padding: 6px 10px;
+  }
+  .speech-dock-right {
+    top: 175px;
+    right: 8px;
+    max-width: 190px;
+    padding: 6px 10px;
+  }
+  .speech-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+  .speech-content {
+    font-size: 11.5px;
+  }
+}
+
 #wrong-way-badge {
   background: rgba(220, 38, 38, 0.94);
   border: 1.5px solid #fecaca;

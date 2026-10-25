@@ -133,7 +133,7 @@ class Game {
       this.player.onTurnStart = (direction, stationData) => {
         this.sound.playTireScreech();
         const dirName = direction === 'left' ? stationData?.left : stationData?.right;
-        this.hud.showSpeech(`🔄 মোড় নেওয়া হচ্ছে: ${dirName || 'আড়াআড়ি রাস্তা'}!`);
+        this.hud.showSpeech(`🔄 মোড় নেওয়া হচ্ছে: ${dirName || 'আড়াআড়ি রাস্তা'}!`, 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
         this.sound.playGaliShoutSound();
       };
 
@@ -147,7 +147,7 @@ class Game {
           this.player.group.position.z,
           '+৳১,৫০০ টার্ন বোনাস!'
         );
-        this.hud.showSpeech(`ঘুরায়া দিছি নবাব! এখন চলতেছে: ${avenueName}! সাইড দেন!`);
+        this.hud.showSpeech(`ঘুরায়া দিছি নবাব! এখন চলতেছে: ${avenueName}! সাইড দেন!`, 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
         this.sound.playCashSound();
 
         // Update Dhaka GPS tracker station name to the newly entered street
@@ -163,7 +163,7 @@ class Game {
         this.sound.playCrashSound(0.5);
         if (Math.random() < 0.35) {
           this.sound.playPoliceWhistle();
-          this.hud.showSpeech('👮‍♂️ ট্রাফিক সার্জেন্ট: এই নবাব! গোলচত্বর দিয়া সাবধানে ঘোরেন!');
+          this.hud.showSpeech('👮‍♂️ ট্রাফিক সার্জেন্ট: এই নবাব! গোলচত্বর দিয়া সাবধানে ঘোরেন!', 'other', '👮‍♂️ ট্রাফিক সার্জেন্ট');
         }
       };
     }
@@ -593,6 +593,7 @@ class Game {
       if (active) {
         this.sound.playTurboSound();
         this.effects.showFloatingText('⚡ টার্বো অ্যাক্টিভ!', '#00f0ff', '24px');
+        this.hud.showSpeech('⚡ টার্বো স্পিড অ্যাক্টিভ! সাইড দেন নবাব যাইতাছে!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
       }
     });
     this.hookTouchBtn('btn-horn', (active) => { this.triggerHorn(active); });
@@ -729,9 +730,9 @@ class Game {
         this.city.reactToHorn(pos.x, pos.z, 30);
       }
 
-      if (Math.random() > 0.6) {
+      if (Math.random() > 0.45) {
         const quote = this.sound.shoutBengaliQuote();
-        this.hud.showSpeech(quote);
+        this.hud.showSpeech(quote, 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
       }
     }
   }
@@ -839,7 +840,10 @@ class Game {
           0, 1.2, ch.z, this.camera, 'ধড়াম!', islandGali, 15000
         );
         this.sound.speakGali(gali);
-        this.hud.showSpeech(gali);
+        this.hud.showSpeech(islandGali, 'other', '👮‍♂️ ট্রাফিক আইল্যান্ড');
+        setTimeout(() => {
+          this.hud.showSpeech('আরে ভাই! গোলচত্বরে ব্রেক কাজ করে না!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        }, 400);
         this.nationalDamage += 15000;
 
         this.player.speed = -14;
@@ -872,7 +876,10 @@ class Game {
           pPos.x, 1.4, nearestPillarZ, this.camera, 'ধড়াম!', 'পিলারের সাথে যুদ্ধ বাঁধাইছো নি?! ব্রেক ধরো!', null
         );
         this.sound.speakGali(gali);
-        this.hud.showSpeech(gali);
+        this.hud.showSpeech('পিলারের সাথে যুদ্ধ বাঁধাইছো নি?! ব্রেক ধরো!', 'other', '🚇 মেট্রোরেল পিলার');
+        setTimeout(() => {
+          this.hud.showSpeech('পিলারে গুঁতা খাইয়া স্টিয়ারিং ঘুরাইতে পারি না!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        }, 350);
         this.nationalDamage += 10000;
         this.player.speed = -14; // Rebound backwards!
         pPos.z = nearestPillarZ + 1.8;
@@ -924,7 +931,10 @@ class Game {
           car.group.position.x, 1.4, car.group.position.z, this.camera, starWord, 'ভিআইপি প্রটোকল শেষ! সাইড দেন নবাব!', 5000
         );
         this.sound.speakGali(gali);
-        this.hud.showSpeech(gali);
+        this.hud.showSpeech('ভিআইপি প্রটোকল শেষ! সাইড দেন নবাব!', 'other', '🚨 ভিআইপি স্কোয়াড');
+        setTimeout(() => {
+          this.hud.showSpeech('রাস্তার নবাব নামছে! সাইড দেন ভিআইপি!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        }, 350);
 
         this.player.speed = -8; // Bounce back
         pPos.z += 1.2;
@@ -952,7 +962,10 @@ class Game {
           car.group.position.x, 0.9, car.group.position.z, this.camera, starWord, customGali, val
         );
         this.sound.speakGali(gali);
-        this.hud.showSpeech(gali);
+        this.hud.showSpeech(customGali, 'other', car.isSergeant ? '👮‍♂️ ট্রাফিক সার্জেন্ট' : '🚶‍♂️ পথচারী (পাবলিক)');
+        setTimeout(() => {
+          this.hud.showSpeech('আরে ফুটপাতে নাইমা আইলেন ক্যান?! সাইড দেন!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        }, 350);
 
         this.effects.createCrashSparks(car.group.position.x, 0.5, car.group.position.z, 8);
         this.loot.burstLootAt(car.group.position.x, car.group.position.z, 3);
@@ -1004,7 +1017,11 @@ class Game {
           car.group.position.x, 1.2, car.group.position.z, this.camera, starWord, customGali, 250
         );
         this.sound.speakGali(gali);
-        this.hud.showSpeech(gali);
+        const carRole = car.isCrossTraffic ? '🚕 আড়াআড়ি ট্রাফিক' : (car.type === 'cng' ? '🛺 সিএনজি চালক' : (car.type === 'bus' ? '🚌 বাস ড্রাইভার' : '🚗 কার ড্রাইভার'));
+        this.hud.showSpeech(customGali, 'other', carRole);
+        setTimeout(() => {
+          this.hud.showSpeech('ব্রেক কাজ করে না মিয়া ভাই! সাইড দেন!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+        }, 350);
 
         const leveledUp = this.player.addCarPart();
         this.sound.playPartPickupSound();
@@ -1051,7 +1068,10 @@ class Game {
         prop.group.position.x, 0.8, prop.group.position.z, this.camera, 'ঠাস!', `${prop.name} চুরমার! দোকানদার বেহুঁশ!`, prop.damage
       );
       this.sound.speakGali(gali);
-      this.hud.showSpeech(gali);
+      this.hud.showSpeech(`${prop.name} চুরমার! দোকানদার বেহুঁশ!`, 'other', '🏪 দোকানদার');
+      setTimeout(() => {
+        this.hud.showSpeech('মাঝ রাস্তায় জিনিস রাখলে গুঁতা তো লাগবই!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+      }, 350);
 
       this.loot.burstLootAt(prop.group.position.x, prop.group.position.z, 2);
     }
@@ -1081,7 +1101,10 @@ class Game {
             hit.x, 1.0, hit.z, this.camera, starWord, galiText, 500
           );
           this.sound.speakGali(gali);
-          this.hud.showSpeech(gali);
+          this.hud.showSpeech(galiText, 'other', '🚶‍♂️ পথচারী');
+          setTimeout(() => {
+            this.hud.showSpeech('ফুটপাতেও নবাবী রিকশা চলব! দেশি টেসলা!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+          }, 350);
 
         } else if (hit.type === 'shop') {
           this.sound.playCrashSound(1.2);
@@ -1108,7 +1131,10 @@ class Game {
             hit.x, 1.2, hit.z, this.camera, starWord, galiText, 6000
           );
           this.sound.speakGali(gali);
-          this.hud.showSpeech(gali);
+          this.hud.showSpeech(galiText, 'other', '🏪 টং দোকানদার');
+          setTimeout(() => {
+            this.hud.showSpeech('চা-বিস্কুটের টাকা পরে দিমু মামা!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+          }, 350);
 
         } else if (hit.type === 'pole') {
           this.sound.playCrashSound(1.5);
@@ -1131,7 +1157,10 @@ class Game {
             hit.x, 1.8, hit.z, this.camera, 'ধড়াম!', galiText, 8000
           );
           this.sound.speakGali(gali);
-          this.hud.showSpeech(gali);
+          this.hud.showSpeech(galiText, 'other', '⚡ বিদ্যুৎ খুঁটি');
+          setTimeout(() => {
+            this.hud.showSpeech('খুঁটির লগে যুদ্ধ বাঁধাইয়া চাকা জ্যাম!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+          }, 350);
         }
       }
     }

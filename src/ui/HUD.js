@@ -123,7 +123,7 @@ export class HUD {
         this.elements.routeProgress.style.width = `${pct}%`;
       }
       if (mapData.reachedNewStation) {
-        this.showSpeech(`📍 এলাকা অতিক্রম: ${mapData.reachedNewStation.name}! ${mapData.reachedNewStation.tag}`);
+        this.showSpeech(`📍 এলাকা অতিক্রম: ${mapData.reachedNewStation.name}! ${mapData.reachedNewStation.tag}`, 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
       }
     }
 
@@ -202,14 +202,81 @@ export class HUD {
     }
   }
 
-  showSpeech(text) {
-    if (!this.elements.speechBubble || !this.elements.speechText) return;
-    this.elements.speechText.innerText = text;
-    this.elements.speechBubble.classList.add('visible');
+  showSpeech(text, speaker = 'other', role = null) {
+    if (!text) return;
 
-    if (this.speechTimeout) clearTimeout(this.speechTimeout);
-    this.speechTimeout = setTimeout(() => {
-      this.elements.speechBubble.classList.remove('visible');
-    }, 2400);
+    const isRickshaw = (speaker === 'rickshaw' || speaker === 'player' || speaker === 'left');
+
+    if (isRickshaw) {
+      // LEFT SIDE: Rickshawala / Nawab
+      const dockL = document.getElementById('speech-dock-left');
+      const textL = document.getElementById('speech-text-left');
+      const nameL = document.getElementById('speech-name-left');
+      if (dockL && textL) {
+        textL.innerText = text;
+        if (nameL && role) nameL.innerText = role;
+        dockL.style.display = 'flex';
+        // Force reflow for smooth CSS transition
+        void dockL.offsetWidth;
+        dockL.classList.add('visible');
+
+        if (this.speechTimeoutLeft) clearTimeout(this.speechTimeoutLeft);
+        this.speechTimeoutLeft = setTimeout(() => {
+          dockL.classList.remove('visible');
+          setTimeout(() => {
+            if (!dockL.classList.contains('visible')) dockL.style.display = 'none';
+          }, 250);
+        }, 2600);
+      }
+    } else {
+      // RIGHT SIDE: Other Person (Pedestrian, Police, Bus, CNG, Shopkeeper)
+      const dockR = document.getElementById('speech-dock-right');
+      const textR = document.getElementById('speech-text-right');
+      const nameR = document.getElementById('speech-name-right');
+      const iconR = document.getElementById('badge-icon-right');
+      if (dockR && textR) {
+        textR.innerText = text;
+        if (role) {
+          if (nameR) nameR.innerText = role;
+        } else {
+          // Auto detect role from text or fallback
+          if (text.includes('সার্জেন্ট') || text.includes('লাইসেন্স') || text.includes('মামলা')) {
+            if (iconR) iconR.innerText = '👮‍♂️';
+            if (nameR) nameR.innerText = 'ট্রাফিক সার্জেন্ট';
+          } else if (text.includes('বাস') || text.includes('মুড়ির টিন')) {
+            if (iconR) iconR.innerText = '🚌';
+            if (nameR) nameR.innerText = 'বাস ড্রাইভার';
+          } else if (text.includes('সিএনজি') || text.includes('মিটার')) {
+            if (iconR) iconR.innerText = '🛺';
+            if (nameR) nameR.innerText = 'সিএনজি চালক';
+          } else if (text.includes('দোকান') || text.includes('চা-বিস্কুট')) {
+            if (iconR) iconR.innerText = '🏪';
+            if (nameR) nameR.innerText = 'টং দোকানদার';
+          } else if (text.includes('খুঁটি') || text.includes('শর্ট সার্কিট')) {
+            if (iconR) iconR.innerText = '⚡';
+            if (nameR) nameR.innerText = 'বিদ্যুৎ খুঁটি';
+          } else {
+            if (iconR) iconR.innerText = '😡';
+            if (nameR) nameR.innerText = 'পথচারী (পাবলিক)';
+          }
+        }
+        dockR.style.display = 'flex';
+        void dockR.offsetWidth;
+        dockR.classList.add('visible');
+
+        if (this.speechTimeoutRight) clearTimeout(this.speechTimeoutRight);
+        this.speechTimeoutRight = setTimeout(() => {
+          dockR.classList.remove('visible');
+          setTimeout(() => {
+            if (!dockR.classList.contains('visible')) dockR.style.display = 'none';
+          }, 250);
+        }, 2600);
+      }
+    }
+
+    // Single center bubble fallback
+    if (this.elements.speechBubble && this.elements.speechText) {
+      this.elements.speechText.innerText = text;
+    }
   }
 }
