@@ -826,16 +826,17 @@ class Game {
       lookAhead = baseLook;
     }
 
-    // Dynamic chase camera following full 360 heading angle & U-Turns!
-    const heading = (this.player && typeof this.player.heading === 'number')
-      ? this.player.heading
-      : ((this.player && this.player.group) ? this.player.group.rotation.y : 0);
+    // Smooth chase camera following vehicle road axis (0 or PI) during normal driving,
+    // and performing a cinematic 180° sweep during U-Turn!
+    const targetCamH = this.player.isUTurning 
+      ? this.player.heading 
+      : (this.player.baseHeading !== undefined ? this.player.baseHeading : 0);
 
-    if (this.currentCamHeading === undefined) this.currentCamHeading = heading;
-    let diff = heading - this.currentCamHeading;
+    if (this.currentCamHeading === undefined) this.currentCamHeading = targetCamH;
+    let diff = targetCamH - this.currentCamHeading;
     while (diff > Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
-    this.currentCamHeading += diff * Math.min(1.0, 8.5 * delta);
+    this.currentCamHeading += diff * Math.min(1.0, 7.5 * delta);
 
     const sinH = Math.sin(this.currentCamHeading);
     const cosH = Math.cos(this.currentCamHeading);
@@ -1384,6 +1385,13 @@ class Game {
     this.player.upgradeLevel = 1;
     this.player.partsCollected = 0;
     this.player.group.position.set(2.8, 0, 0);
+    this.player.baseHeading = 0;
+    this.player.heading = 0;
+    this.player.isUTurning = false;
+    this.player.steerAngle = 0;
+    this.player.tilt = 0;
+    this.player.group.rotation.set(0, 0, 0);
+    this.currentCamHeading = 0;
 
     this.road.reset();
     this.metro.reset();
@@ -1502,7 +1510,8 @@ class Game {
       this.props.update(delta, pZ);
       if (this.charging) this.charging.update(delta, pZ);
 
-      this.traffic.update(delta, pZ, this.player.speed, activeChourastas);
+      const playerDirZ = (this.player.baseHeading === 0) ? -1 : 1;
+      this.traffic.update(delta, pZ, this.player.speed, activeChourastas, playerDirZ);
       this.loot.update(delta, pZ);
       this.effects.update(delta);
 

@@ -22,11 +22,11 @@ export class TrafficManager {
     this.initHighwayTraffic(0);
   }
 
-  update(delta, playerZ, playerSpeed, activeChourastas = []) {
+  update(delta, playerZ, playerSpeed, activeChourastas = [], playerDirZ = -1) {
     this.spawnTimer += delta;
     if (this.spawnTimer >= this.spawnInterval && this.vehicles.length < this.maxVehicles) {
       this.spawnTimer = 0;
-      this.spawnRandomVehicle(playerZ);
+      this.spawnRandomVehicle(playerZ, playerDirZ);
     }
 
     // Spawn authentic dynamic cross-traffic at upcoming Chourasta
@@ -35,7 +35,7 @@ export class TrafficManager {
       if (this.crossTrafficTimer >= 2.0) {
         this.crossTrafficTimer = 0;
         for (const ch of activeChourastas) {
-          const distAhead = playerZ - ch.z;
+          const distAhead = (playerDirZ < 0) ? (playerZ - ch.z) : (ch.z - playerZ);
           if (distAhead > 15 && distAhead < 120) {
             this.spawnCrossTrafficAtChourasta(ch.z);
             break;
@@ -45,8 +45,11 @@ export class TrafficManager {
     }
 
     // Ensure there is always a VIP car target ahead
-    if (!this.vipCar || !this.vipCar.active || this.vipCar.group.position.z > playerZ) {
-      this.spawnVIPCar(playerZ);
+    const needVip = (playerDirZ < 0)
+      ? (!this.vipCar || !this.vipCar.active || this.vipCar.group.position.z > playerZ)
+      : (!this.vipCar || !this.vipCar.active || this.vipCar.group.position.z < playerZ);
+    if (needVip) {
+      this.spawnVIPCar(playerZ, playerDirZ);
     }
 
     // Update all active vehicles
@@ -62,20 +65,20 @@ export class TrafficManager {
     }
   }
 
-  spawnVIPCar(playerZ) {
+  spawnVIPCar(playerZ, playerDirZ = -1) {
     const lane = [2.5, 5.5, -2.5][Math.floor(Math.random() * 3)];
     const v = new TrafficCar(this.scene, 'vip');
-    const spawnZ = playerZ - (95 + Math.random() * 30);
+    const spawnZ = playerZ + playerDirZ * (95 + Math.random() * 30);
     v.group.position.set(lane, 0, spawnZ);
     v.speed = 35;
-    v.isWrongWay = lane < 0;
-    if (v.isWrongWay) v.group.rotation.y = Math.PI;
+    v.isWrongWay = (playerDirZ < 0) ? (lane < 0) : (lane > 0);
+    v.group.rotation.y = v.isWrongWay ? Math.PI : 0;
 
     this.vehicles.push(v);
     this.vipCar = v;
   }
 
-  spawnRandomVehicle(playerZ) {
+  spawnRandomVehicle(playerZ, playerDirZ = -1) {
     // 65% chance to spawn on player's side of highway (X > 0), 35% on opposite side (X < 0)
     const onPlayerSide = Math.random() < 0.65;
     const lanePool = onPlayerSide ? [3.2, 5.8, 8.8, 10.6] : [-3.2, -5.8, -8.8, -10.6];
@@ -92,40 +95,39 @@ export class TrafficManager {
     else type = 'pedestrian';              // 7% Crossing Public
 
     const vehicle = new TrafficCar(this.scene, type);
-    const spawnZ = playerZ - (55 + Math.random() * 65);
+    const spawnZ = playerZ + playerDirZ * (55 + Math.random() * 65);
 
     if (type === 'pedestrian') {
       const fromRight = Math.random() > 0.5;
       const startX = fromRight ? 11.2 : -11.2;
       vehicle.group.position.set(startX, 0, spawnZ);
       vehicle.crossSpeed = fromRight ? -1.8 : 1.8;
-      vehicle.group.rotation.y = fromRight ? -Math.PI / 2 : Math.PI / 2;
+      vehicle.group.rotation.y = (playerDirZ < 0) ? (fromRight ? -Math.PI / 2 : Math.PI / 2) : (fromRight ? Math.PI / 2 : -Math.PI / 2);
       vehicle.speed = 1.5;
       vehicle.isWrongWay = false;
     } else if (onPlayerSide) {
       // ON THE PLAYER'S SIDE OF THE HIGHWAY:
-      // Auto-rickshaws have a 38% chance of driving on the WRONG SIDE (coming oncoming towards player)!
       const isAuto = (type === 'rickshaw' || type === 'cng');
       const shouldDriveWrongWay = isAuto && (Math.random() < 0.38);
 
       vehicle.group.position.set(laneX, 0, spawnZ);
       if (shouldDriveWrongWay) {
-        // WRONG SIDE AUTO RICKSHAW! (Driving oncoming towards player with headlight on)
-        vehicle.group.rotation.y = Math.PI;
+        // Driving oncoming towards player
+        vehicle.group.rotation.y = (playerDirZ < 0) ? Math.PI : 0;
         vehicle.speed = 22 + Math.random() * 12;
-        vehicle.isWrongWay = true;
+        vehicle.isWrongWay = (playerDirZ < 0);
       } else {
-        // RIGHT SIDE AUTO RICKSHAW! (Cruising forward in traffic flow)
-        vehicle.group.rotation.y = 0;
+        // Cruising forward in traffic flow
+        vehicle.group.rotation.y = (playerDirZ < 0) ? 0 : Math.PI;
         vehicle.speed = isAuto ? (20 + Math.random() * 12) : (24 + Math.random() * 22);
-        vehicle.isWrongWay = false;
+        vehicle.isWrongWay = (playerDirZ > 0);
       }
     } else {
-      // OPPOSITE ROADWAY (X < 0): Normal oncoming traffic flow
+      // OPPOSITE ROADWAY: Normal oncoming traffic flow
       vehicle.group.position.set(laneX, 0, spawnZ);
-      vehicle.group.rotation.y = Math.PI;
+      vehicle.group.rotation.y = (playerDirZ < 0) ? Math.PI : 0;
       vehicle.speed = 26 + Math.random() * 26;
-      vehicle.isWrongWay = true;
+      vehicle.isWrongWay = (playerDirZ < 0);
     }
 
     this.vehicles.push(vehicle);
