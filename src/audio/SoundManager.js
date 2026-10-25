@@ -415,20 +415,75 @@ export class SoundManager {
     } catch (e) {}
   }
 
-  // Voice Speech Synthesis for Dhaka Street Gali (when supported by browser)
+  // Play authentic shouted voice audio clip
+  playGaliShoutSound() {
+    if (this.isMuted) return;
+    const now = Date.now();
+    if (this.lastGaliSoundTime && now - this.lastGaliSoundTime < 450) return;
+    this.lastGaliSoundTime = now;
+
+    if (this.galiAudios && this.galiAudios.length > 0) {
+      const idx = Math.floor(Math.random() * this.galiAudios.length);
+      const audio = this.galiAudios[idx];
+      try {
+        audio.currentTime = 0;
+        audio.volume = 0.95;
+        audio.play().catch(() => {});
+      } catch (e) {}
+    }
+  }
+
+  // Phonetic Banglish translation for universal voice fallback on Windows/Chrome
+  getBanglishTranslation(bnText) {
+    if (!bnText) return 'Arey bhai dekhe chalan!';
+    if (bnText.includes('রাগ করলা')) return 'Ki rag korla?! Rag korla naki shona?!';
+    if (bnText.includes('বাপের')) return 'Rasta ki tor baper?!';
+    if (bnText.includes('ফুটপাতে')) return 'Footpate gari uthaiya manush maren?!';
+    if (bnText.includes('সার্জেন্ট')) return 'Sergeant ke dhakka?! License batil koira dimu!';
+    if (bnText.includes('দোকান')) return 'Dokan bhainga shob shesh koira dilen!';
+    if (bnText.includes('চা-বিস্কুট')) return 'Cha biscuit shob draine porlo!';
+    if (bnText.includes('মিটার')) return 'Meter chole na mama! Fixed 300 taka!';
+    if (bnText.includes('সিএনজি')) return 'CNG walahr shathe tokkor?! Mirpur 10 chenen?!';
+    if (bnText.includes('গ্যাস')) return 'Gas nai cylindere, abar piche guta maren!';
+    if (bnText.includes('চৌরাস্তা')) return 'Chourastay laal baati dekhen na miya?!';
+    if (bnText.includes('পিলার')) return 'Pillar er shathe juddho badhaicho ni?!';
+    if (bnText.includes('গোলচত্বর')) return 'Golchottore gari uthaiya dili kano re?!';
+    if (bnText.includes('হাড়গোড়')) return 'Har gor bhainga dilen bhai re bhai!';
+    if (bnText.includes('খুঁটি')) return 'Boidyutik khutite guta marla?!';
+    if (bnText.includes('চুরমার')) return 'Churmar koira dilen!';
+    return 'Arey bhai dekhe chalan! Rasta ki tor baper?!';
+  }
+
+  // Voice Speech Synthesis for Dhaka Street Gali
   speakGali(text) {
-    if (this.isMuted || typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (this.isMuted) return;
+
+    // 1. ALWAYS play real audible shouted voice audio clip
+    this.playGaliShoutSound();
+
+    // 2. Browser Voice Speech
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
     try {
-      window.speechSynthesis.cancel();
-      const clean = text.replace(/[^ঀ-৿a-zA-Z0-9\s!?,]/g, '');
-      const utt = new SpeechSynthesisUtterance(clean);
-      utt.lang = 'bn-BD';
-      utt.rate = 1.25; // Fast, energetic Dhaka tempo
-      utt.pitch = 1.15;
-      utt.volume = 0.9;
       const voices = window.speechSynthesis.getVoices();
-      const bnVoice = voices.find(v => v.lang && v.lang.startsWith('bn'));
-      if (bnVoice) utt.voice = bnVoice;
+      const bnVoice = voices.find(v => v.lang && (v.lang.startsWith('bn') || v.lang.includes('Bengali') || v.lang.includes('Bangla')));
+
+      let utt;
+      if (bnVoice) {
+        const clean = text.replace(/[^ঀ-৿a-zA-Z0-9\s!?,]/g, '');
+        utt = new SpeechSynthesisUtterance(clean);
+        utt.voice = bnVoice;
+        utt.lang = bnVoice.lang;
+      } else {
+        // Universal fallback: speak phonetic Banglish so Windows/Chrome ALWAYS outputs audible speech!
+        const banglish = this.getBanglishTranslation(text);
+        utt = new SpeechSynthesisUtterance(banglish);
+        utt.lang = 'en-US';
+      }
+
+      utt.rate = 1.25;
+      utt.pitch = 1.25;
+      utt.volume = 1.0;
+
       window.speechSynthesis.speak(utt);
     } catch (e) {}
   }
