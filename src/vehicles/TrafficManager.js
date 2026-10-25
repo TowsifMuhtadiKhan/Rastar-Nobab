@@ -82,12 +82,12 @@ export class TrafficManager {
 
     const rand = Math.random();
     let type = 'rickshaw';
-    if (rand < 0.28) type = 'rickshaw';    // 28% Dhaka Motor Rickshaws!
-    else if (rand < 0.52) type = 'cng';    // 24% Green CNGs
-    else if (rand < 0.72) type = 'bus';    // 20% Dhaka Local Buses
-    else if (rand < 0.84) type = 'hiace';  // 12% Microbuses
-    else if (rand < 0.93) type = 'sedan';  // 9% Private Sedans
-    else type = 'pedestrian';              // 7% Crossing Pedestrians
+    if (rand < 0.24) type = 'rickshaw';    // 24% Dhaka Motor Rickshaws!
+    else if (rand < 0.44) type = 'cng';    // 20% Green CNGs
+    else if (rand < 0.62) type = 'bus';    // 18% Dhaka Local Buses
+    else if (rand < 0.73) type = 'hiace';  // 11% Microbuses
+    else if (rand < 0.82) type = 'sedan';  // 9% Private Sedans
+    else type = 'pedestrian';              // 18% Crossing Pedestrians!
 
     const vehicle = new TrafficCar(this.scene, type);
     const spawnZ = playerZ - (65 + Math.random() * 60);

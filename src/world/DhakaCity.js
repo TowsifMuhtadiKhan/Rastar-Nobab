@@ -177,17 +177,21 @@ export class DhakaCity {
       this.footpathShops.push({ group: shop, baseZ: z, isLeft, type });
     }
 
-    // 3. Human Pedestrians Walking Along the Footpath
+    // 3. Human Pedestrians Walking Along the Footpath (Populated, Vibrant Dhaka Sidewalk Crowds!)
     this.footpathHumans = [];
-    for (let p = 0; p < 14; p++) {
+    const numPeds = 64; // 64 diverse pedestrians populated along both sidewalks!
+    for (let p = 0; p < numPeds; p++) {
       const isLeft = p % 2 === 0;
-      const x = isLeft ? -14.2 - (p % 3) * 0.3 : 14.2 + (p % 3) * 0.3;
-      let z = -p * 28 - 6;
-      if (this.isChourastaCrossing(z)) z -= 16;
+      // Staggered across the 4.5m wide sidewalk
+      const laneOffset = ((p * 7) % 5) * 0.55; // 0 to 2.2m offset
+      const x = isLeft ? (-13.8 - laneOffset) : (13.8 + laneOffset);
+      let z = (numPeds / 2 - p) * 9.5; // Spread from -300m to +300m across the world!
+      if (this.isChourastaCrossing(z)) z -= 14;
+
       const ped = this.createFootpathPedestrian(isLeft, p);
       ped.position.set(x, 0.28, z);
       this.scene.add(ped);
-      this.footpathHumans.push({ group: ped, baseZ: z, isLeft });
+      this.footpathHumans.push({ group: ped, baseZ: z, isLeft, origX: x });
     }
 
     // 4. Concrete Utility Poles with Transformers (spaced neatly at outer edge of footpath)
@@ -358,6 +362,10 @@ export class DhakaCity {
         group.add(legR);
       }
     }
+
+    group.userData.armL = armL;
+    group.userData.armR = armR;
+    group.userData.isSitting = isSitting;
 
     return group;
   }
@@ -651,18 +659,29 @@ export class DhakaCity {
     return group;
   }
 
-  // Pedestrian Human Walking Along Footpath
+  // Pedestrian Human Walking Along Footpath (Diverse Bangladeshi Street Crowd)
   createFootpathPedestrian(isLeft, idx) {
-    const shirts = [0x2563eb, 0xdc2626, 0x16a34a, 0xf59e0b, 0x9333ea, 0x0284c7];
+    const shirts = [0x2563eb, 0xdc2626, 0x16a34a, 0xf59e0b, 0x9333ea, 0x0284c7, 0xffffff, 0x0f172a, 0xec4899, 0x10b981];
+    const lungiColors = [0x0284c7, 0x16a34a, 0x881337, 0xd97706, 0x4f46e5];
+    const isLungi = idx % 2 === 0;
+    const hasCap = idx % 3 === 0;
+    const hasGamcha = idx % 4 === 0;
+    const isWalkingBack = idx % 2 === 1;
+
     const ped = this.createHumanFigure({
       shirtColor: shirts[idx % shirts.length],
       pantsColor: idx % 2 === 0 ? 0x1e293b : 0x475569,
-      isLungi: idx % 3 === 0,
-      hasCap: idx % 4 === 0,
-      hasGamcha: idx % 5 === 0
+      isLungi: isLungi,
+      lungiColor: lungiColors[idx % lungiColors.length],
+      hasCap: hasCap,
+      hasGamcha: hasGamcha,
+      holding: idx % 5 === 0 ? 'cup' : (idx % 7 === 0 ? 'cone' : 'none'),
+      scale: 0.95 + (idx % 3) * 0.05
     });
-    // Facing walking forward down sidewalk
-    ped.rotation.y = Math.PI;
+
+    ped.rotation.y = isWalkingBack ? 0 : Math.PI;
+    ped.userData.isWalkingBack = isWalkingBack;
+    ped.userData.walkSpeed = 0.85 + (idx % 4) * 0.25;
     return ped;
   }
 
@@ -959,16 +978,16 @@ export class DhakaCity {
       }
     }
 
-    // 3. Footpath Pedestrians bi-directional recycling & gentle walking animation
-    const walkBob = Math.sin(Date.now() * 0.008) * 0.03;
+    // 3. Footpath Pedestrians bi-directional recycling & animated arm swing strides
+    const time = Date.now() * 0.007;
     for (const ped of this.footpathHumans) {
       if (ped.group.position.z > playerZ + halfSpan) {
         let minZ = playerZ;
         for (const other of this.footpathHumans) {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
-        let nextZ = minZ - 28;
-        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
+        let nextZ = minZ - 9.5;
+        if (this.isChourastaCrossing(nextZ)) nextZ -= 14;
         ped.group.position.z = nextZ;
         ped.group.rotation.z = 0;
         ped.isHit = false;
@@ -977,13 +996,22 @@ export class DhakaCity {
         for (const other of this.footpathHumans) {
           if (other.group.position.z > maxZ) maxZ = other.group.position.z;
         }
-        let nextZ = maxZ + 28;
-        if (this.isChourastaCrossing(nextZ)) nextZ += 16;
+        let nextZ = maxZ + 9.5;
+        if (this.isChourastaCrossing(nextZ)) nextZ += 14;
         ped.group.position.z = nextZ;
         ped.group.rotation.z = 0;
         ped.isHit = false;
       }
-      ped.group.position.y = 0.28 + Math.abs(walkBob);
+
+      // Animated walking arm swing & stride
+      if (!ped.isHit && ped.group.userData) {
+        const uSpeed = ped.group.userData.walkSpeed || 1.0;
+        const phase = (ped.baseZ || 0) * 0.25 + time * uSpeed;
+        const swing = Math.sin(phase) * 0.45;
+        if (ped.group.userData.armL) ped.group.userData.armL.rotation.x = swing;
+        if (ped.group.userData.armR) ped.group.userData.armR.rotation.x = -swing;
+        ped.group.position.y = 0.28 + Math.abs(Math.sin(phase * 2)) * 0.035;
+      }
     }
 
     // 4. Utility Poles bi-directional recycling
