@@ -81,12 +81,13 @@ export class TrafficManager {
     const isWrongSideLane = laneX < 0;
 
     const rand = Math.random();
-    let type = 'cng';
-    if (rand < 0.36) type = 'cng';         // 36% Green CNG Auto-Rickshaws (iconic Dhaka traffic!)
-    else if (rand < 0.62) type = 'bus';    // 26% Dhaka Local Buses
-    else if (rand < 0.78) type = 'hiace';  // 16% Microbuses
-    else if (rand < 0.90) type = 'sedan';  // 12% Private Sedans
-    else type = 'pedestrian';              // 10% Crossing Pedestrians
+    let type = 'rickshaw';
+    if (rand < 0.28) type = 'rickshaw';    // 28% Dhaka Motor Rickshaws!
+    else if (rand < 0.52) type = 'cng';    // 24% Green CNGs
+    else if (rand < 0.72) type = 'bus';    // 20% Dhaka Local Buses
+    else if (rand < 0.84) type = 'hiace';  // 12% Microbuses
+    else if (rand < 0.93) type = 'sedan';  // 9% Private Sedans
+    else type = 'pedestrian';              // 7% Crossing Pedestrians
 
     const vehicle = new TrafficCar(this.scene, type);
     const spawnZ = playerZ - (65 + Math.random() * 60);
@@ -131,9 +132,10 @@ export class TrafficManager {
 
     const rand = Math.random();
     let type = 'cng';
-    if (rand < 0.60) type = 'cng';       // 60% Green CNG Auto-Rickshaws crossing
-    else if (rand < 0.82) type = 'bus';  // 22% Dhaka Buses crossing
-    else type = 'sedan';                 // 18% Private Sedans
+    if (rand < 0.35) type = 'rickshaw';   // 35% Motor Rickshaws crossing!
+    else if (rand < 0.68) type = 'cng';   // 33% Green CNG Auto-Rickshaws crossing
+    else if (rand < 0.86) type = 'bus';   // 18% Dhaka Buses crossing
+    else type = 'sedan';                  // 14% Private Sedans
 
     const vehicle = new TrafficCar(this.scene, type);
     vehicle.isCrossTraffic = true;
@@ -194,8 +196,8 @@ export class TrafficManager {
   }
 
   initHighwayTraffic(playerZ) {
-    // Guaranteed Green CNG Auto-Rickshaws and traffic ahead right from the start line
-    const initialTypes = ['cng', 'bus', 'cng', 'hiace', 'cng', 'sedan', 'cng', 'bus'];
+    // Pre-populate with iconic Motor Rickshaws, CNG Auto-Rickshaws, and buses
+    const initialTypes = ['rickshaw', 'cng', 'bus', 'rickshaw', 'cng', 'hiace', 'sedan', 'rickshaw'];
     initialTypes.forEach((t, i) => {
       const v = new TrafficCar(this.scene, t);
       const lane = this.lanes[i % this.lanes.length];

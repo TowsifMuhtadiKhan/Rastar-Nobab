@@ -495,6 +495,90 @@ export class SoundManager {
     } catch (e) {}
   }
 
+  // Authentic High-Energy Rickshawala Driver Voice Speech & Audio
+  speakDriverVoice(text) {
+    if (this.isMuted) return;
+
+    // 1. Play energetic driver horn/bell tone
+    this.playDriverShoutSound();
+
+    // 2. Browser Voice Speech Output
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const bnVoice = voices.find(v => v.lang && (v.lang.startsWith('bn') || v.lang.includes('Bengali') || v.lang.includes('Bangla')));
+
+      let utt;
+      if (bnVoice) {
+        const clean = text.replace(/[^ঀ-৿a-zA-Z0-9\s!?,]/g, '');
+        utt = new SpeechSynthesisUtterance(clean);
+        utt.voice = bnVoice;
+        utt.lang = bnVoice.lang;
+      } else {
+        const banglish = this.getDriverBanglishTranslation(text);
+        utt = new SpeechSynthesisUtterance(banglish);
+        utt.lang = 'en-US';
+      }
+
+      utt.rate = 1.28;
+      utt.pitch = 1.38; // Energetic, sharp driver tone
+      utt.volume = 1.0;
+      window.speechSynthesis.speak(utt);
+    } catch (e) {}
+  }
+
+  getDriverBanglishTranslation(bnText) {
+    if (!bnText) return 'Arey mama side ektu charen! Nawab er rickshaw!';
+    if (bnText.includes('টার্বো')) return 'Turbo speed active! Side den mama nawab jaaitase!';
+    if (bnText.includes('চার্জ')) return 'Battery charge full! Nawab ekhon rocket!';
+    if (bnText.includes('ঘুরায়া')) return 'Ghuraya disi nawab! Side den!';
+    if (bnText.includes('ব্রেক')) return 'Brake kaje kore na mama! Side den!';
+    if (bnText.includes('ফুটপাত')) return 'Footpateo rickshaw cholbo! Deshi Tesla!';
+    if (bnText.includes('নবাব')) return 'Rastar nawab aaitase! Side den!';
+    if (bnText.includes('ভিআইপি')) return 'Rastar nawab namsi! Side den VIP!';
+    return 'Arey mama side ektu charen! Nawab jaaitase!';
+  }
+
+  playDriverShoutSound() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(580, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.23);
+    } catch (e) {}
+  }
+
+  // Futuristic Roadside Electric Fast-Charge Sound
+  playChargingSound() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(1450, now + 0.55);
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.30, now + 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.68);
+    } catch (e) {}
+  }
+
   playPartPickupSound() {
     this.ensureContext();
     if (!this.ctx || this.isMuted || !this.masterGain) return;

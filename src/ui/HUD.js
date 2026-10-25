@@ -208,6 +208,11 @@ export class HUD {
     const isRickshaw = (speaker === 'rickshaw' || speaker === 'player' || speaker === 'left');
 
     if (isRickshaw) {
+      // Speak with authentic Driver Voice sound & audio!
+      if (typeof window !== 'undefined' && window.__gameInstance && window.__gameInstance.sound) {
+        window.__gameInstance.sound.speakDriverVoice(text);
+      }
+
       // LEFT SIDE: Rickshawala / Nawab
       const dockL = document.getElementById('speech-dock-left');
       const textL = document.getElementById('speech-text-left');

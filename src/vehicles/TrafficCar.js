@@ -37,6 +37,8 @@ export class TrafficCar {
       this.initHiAceModel();
     } else if (this.type === 'cng') {
       this.initCNGModel();
+    } else if (this.type === 'rickshaw') {
+      this.initRickshawModel();
     } else if (this.type === 'pedestrian') {
       this.initPedestrianModel();
     } else {
@@ -213,6 +215,125 @@ export class TrafficCar {
     this.addWheel(0.92, 0.38, -1.45, 0.38);
     this.addWheel(-0.92, 0.38, 1.45, 0.38);
     this.addWheel(0.92, 0.38, 1.45, 0.38);
+  }
+
+  // 3.5. Authentic Dhaka Colorful Motor Rickshaw (মোটর / ব্যাটারি রিকশা) with Rickshaw Art & Driver
+  initRickshawModel() {
+    this.width = 1.25;
+    this.length = 2.45;
+    this.height = 1.85;
+
+    // Colorful Dhaka Rickshaw Hood Colors (Red, Blue, Green, Yellow, Pink)
+    const hoodColors = [0xdc2626, 0x2563eb, 0x16a34a, 0xeab308, 0xec4899];
+    const hoodColor = hoodColors[Math.floor(Math.random() * hoodColors.length)];
+
+    const hoodMat = new THREE.MeshStandardMaterial({
+      color: hoodColor,
+      roughness: 0.5,
+      metalness: 0.1
+    });
+
+    const steelMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.4,
+      metalness: 0.7
+    });
+
+    const seatMat = new THREE.MeshStandardMaterial({
+      color: 0x7c2d12,
+      roughness: 0.7
+    });
+
+    // 1. Lower Chassis & Footboard
+    const chassisGeo = new THREE.BoxGeometry(0.9, 0.1, 1.8);
+    const chassis = new THREE.Mesh(chassisGeo, steelMat);
+    chassis.position.set(0, 0.45, 0);
+    chassis.castShadow = true;
+    this.group.add(chassis);
+
+    // 2. Passenger Seat & Rear Box
+    const seatGeo = new THREE.BoxGeometry(1.05, 0.5, 0.65);
+    const seat = new THREE.Mesh(seatGeo, seatMat);
+    seat.position.set(0, 0.75, 0.55);
+    seat.castShadow = true;
+    this.group.add(seat);
+
+    // 3. Iconic Dhaka Rickshaw Folded Hood / Canopy
+    const canopyGeo = new THREE.CylinderGeometry(0.62, 0.62, 1.15, 16, 1, false, 0, Math.PI);
+    const canopy = new THREE.Mesh(canopyGeo, hoodMat);
+    canopy.rotation.z = Math.PI / 2;
+    canopy.rotation.y = Math.PI;
+    canopy.position.set(0, 1.48, 0.55);
+    canopy.castShadow = true;
+    this.group.add(canopy);
+
+    // 4. Rear Rickshaw Art Plate (Iconic Bangladeshi Cinema / Peacocks / Taj Mahal Tin Plate Art)
+    const artPlateTex = (typeof TextureFactory.createRickshawArtPlate === 'function')
+      ? TextureFactory.createRickshawArtPlate() : null;
+    const plateGeo = new THREE.BoxGeometry(0.92, 0.45, 0.04);
+    const plateMat = new THREE.MeshStandardMaterial({
+      map: artPlateTex,
+      color: artPlateTex ? 0xffffff : 0xfde047,
+      roughness: 0.4
+    });
+    const artPlate = new THREE.Mesh(plateGeo, plateMat);
+    artPlate.position.set(0, 0.52, 0.95);
+    this.group.add(artPlate);
+
+    // 5. Wheels (1 Front, 2 Rear)
+    const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 16);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.8 });
+
+    // Front Wheel
+    const fw = new THREE.Mesh(wheelGeo, wheelMat);
+    fw.rotation.z = Math.PI / 2;
+    fw.position.set(0, 0.35, -0.95);
+    this.group.add(fw);
+
+    // Left Rear Wheel
+    const rwl = new THREE.Mesh(wheelGeo, wheelMat);
+    rwl.rotation.z = Math.PI / 2;
+    rwl.position.set(-0.58, 0.35, 0.55);
+    this.group.add(rwl);
+
+    // Right Rear Wheel
+    const rwr = new THREE.Mesh(wheelGeo, wheelMat);
+    rwr.rotation.z = Math.PI / 2;
+    rwr.position.set(0.58, 0.35, 0.55);
+    this.group.add(rwr);
+
+    // 6. Rickshawala Driver Character (Lungi & Gamcha)
+    const lungiColors = [0x0284c7, 0x16a34a, 0x7c3aed, 0xd97706];
+    const lungiColor = lungiColors[Math.floor(Math.random() * lungiColors.length)];
+    const shirtColors = [0xffffff, 0x38bdf8, 0x4ade80, 0xfacc15];
+    const shirtColor = shirtColors[Math.floor(Math.random() * shirtColors.length)];
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x8d5524, roughness: 0.8 });
+    const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.6 });
+    const lungiMat = new THREE.MeshStandardMaterial({ color: lungiColor, roughness: 0.6 });
+
+    // Driver Torso
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.48, 0.24), shirtMat);
+    torso.position.set(0, 1.15, -0.2);
+    this.group.add(torso);
+
+    // Driver Head & Gamcha
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), skinMat);
+    head.position.set(0, 1.48, -0.2);
+    this.group.add(head);
+
+    // Driver Lungi Legs
+    const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.5, 12), lungiMat);
+    legs.position.set(0, 0.75, -0.2);
+    this.group.add(legs);
+
+    // 7. Blinking Hood Fairy Lights
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    for (let i = -0.5; i <= 0.5; i += 0.25) {
+      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), lightMat);
+      fl.position.set(i, 1.78, 0.55);
+      this.group.add(fl);
+    }
   }
 
   // 4. Green CNG Auto-Rickshaw (সিএনজি অটোরিকশা) with Iron Cage Grille & Chrome Headlight

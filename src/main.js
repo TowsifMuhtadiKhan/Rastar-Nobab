@@ -12,6 +12,7 @@ import { SoundManager } from './audio/SoundManager.js';
 import { HUD } from './ui/HUD.js';
 import { MiniMap } from './ui/MiniMap.js';
 import { MemeGenerator } from './ui/MemeGenerator.js';
+import { ChargingStationManager } from './world/ChargingStationManager.js';
 import { toBengaliNumber } from './ui/Textures.js';
 
 class Game {
@@ -109,6 +110,7 @@ class Game {
     this.city = new DhakaCity(this.scene);
     this.map = new DhakaMap(this.scene);
     this.props = new DhakaProps(this.scene);
+    this.charging = new ChargingStationManager(this.scene);
     this.player = new RickshawTesla(this.scene);
     this.traffic = new TrafficManager(this.scene);
     this.loot = new LootManager(this.scene);
@@ -989,6 +991,15 @@ class Game {
           ];
           customGali = crossGalis[Math.floor(Math.random() * crossGalis.length)];
           starWord = Math.random() > 0.5 ? 'ধড়াম!' : 'ধপাস!';
+        } else if (car.type === 'rickshaw') {
+          const rickshawGalis = [
+            'আরে মামা দেইখা চালান! খাঁচা ভাইঙ্গা দিলেন তো!',
+            'রিকশায় কি ব্রেক নাই নাকি?! সাইড কাটাও!',
+            'আরে ভাই! আরেকটা রিকশারে ধাক্কা মারলেন?! সাইড দেন!',
+            'এই নবাবের গাড়ি দেইখা সাইড কাটাও মিয়া!'
+          ];
+          customGali = rickshawGalis[Math.floor(Math.random() * rickshawGalis.length)];
+          starWord = 'ধপাস!';
         } else if (car.type === 'cng') {
           const cngGalis = [
             'মিটার চলে না মামা! ফিক্সড ৩০০ টাকা!',
@@ -1310,6 +1321,7 @@ class Game {
     this.city.reset();
     this.map.reset();
     this.props.reset();
+    if (this.charging) this.charging.reset();
     this.traffic.reset();
     this.loot.reset();
     this.effects.reset();
@@ -1419,12 +1431,52 @@ class Game {
       this.city.update(delta, pZ);
       const mapData = this.map.update(pZ);
       this.props.update(delta, pZ);
+      if (this.charging) this.charging.update(delta, pZ);
 
       this.traffic.update(delta, pZ, this.player.speed, activeChourastas);
       this.loot.update(delta, pZ);
       this.effects.update(delta);
 
       this.checkGameCollisions(delta);
+
+      // Roadside Electric Charging Station Interaction
+      if (this.charging) {
+        const chargeResult = this.charging.checkCharging(this.player.group.position);
+        if (chargeResult.isCharging) {
+          const prevBat = this.player.battery;
+          this.player.battery = Math.min(100, this.player.battery + 50 * delta);
+
+          // Electric spark VFX
+          this.effects.createCrashSparks(this.player.group.position.x, 0.4, this.player.group.position.z, 3);
+
+          const now = Date.now();
+          if (!this.lastChargeEffectTime || now - this.lastChargeEffectTime > 1200) {
+            this.lastChargeEffectTime = now;
+            this.sound.playChargingSound();
+            this.effects.showFloatingText('⚡ ব্যাটারি চার্জ হচ্ছে!', '#00f0ff', '24px');
+          }
+
+          if (prevBat < 98 && this.player.battery >= 99) {
+            this.takaCollected += 1000;
+            this.effects.showFloatingText('🔋 ব্যাটারি ১০০% ফুল! +৳১,০০০', '#10b981', '28px');
+            this.hud.showSpeech('🔋 ব্যাটারি ১০০% চার্জ ফুল! নবাব এখন রকেটের মতো ছুটবে!', 'rickshaw', '🛺 নবাব রিকশাওয়ালা');
+            this.sound.playCashSound();
+          }
+        }
+
+        // Live Charging Station Distance Indicator (Matching screenshot!)
+        const nextChargeDist = this.charging.getNextStationDistance(pZ);
+        const chargePill = document.getElementById('hud-charge-dist-pill');
+        const chargeText = document.getElementById('hud-charge-dist-text');
+        if (chargePill && chargeText) {
+          if (nextChargeDist !== null && nextChargeDist < 350) {
+            chargePill.style.display = 'flex';
+            chargeText.innerText = `চার্জ ${toBengaliNumber(nextChargeDist)} মি সামনে`;
+          } else {
+            chargePill.style.display = 'none';
+          }
+        }
+      }
 
       if (this.miniMap) {
         this.miniMap.update(
