@@ -835,18 +835,18 @@ class Game {
     let diff = heading - this.currentCamHeading;
     while (diff > Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
-    this.currentCamHeading += diff * Math.min(1.0, 7.5 * delta);
+    this.currentCamHeading += diff * Math.min(1.0, 8.5 * delta);
 
     const sinH = Math.sin(this.currentCamHeading);
     const cosH = Math.cos(this.currentCamHeading);
 
-    // Forward vector is (-sinH, 0, -cosH). Camera is behind vehicle: (+sinH * dist, height, +cosH * dist)
+    // Dynamic chase camera following full 360 heading angle & U-Turns!
     const targetCamPos = new THREE.Vector3(
       pPos.x + sinH * dist,
       pPos.y + height,
       pPos.z + cosH * dist
     );
-    // Camera looks forward ahead of vehicle:
+    // Camera looks forward ahead of vehicle in direction of movement
     const targetLookAt = new THREE.Vector3(
       pPos.x - sinH * Math.abs(lookAhead),
       pPos.y + 0.95,
@@ -859,7 +859,7 @@ class Game {
       this.screenShake = Math.max(0, this.screenShake - delta * 1.8);
     }
 
-    this.camera.position.lerp(targetCamPos, 0.10);
+    this.camera.position.lerp(targetCamPos, Math.min(1.0, 14.0 * delta));
     this.camera.lookAt(targetLookAt);
   }
 

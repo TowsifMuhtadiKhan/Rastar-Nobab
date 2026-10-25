@@ -914,8 +914,7 @@ export class RickshawTesla {
       this.battery = Math.max(0, this.battery - 0.015);
     }
 
-    // Steering & Heading Controls (Arcade Responsive Lane-Dodging & 180° U-Turn Drift)
-    let steerFactor = 0;
+    // 1. Steering & Heading Controls (Authentic 3D Vehicle Physics & Natural U-Turn matching baperrasta.com)
     if (this.isUTurning) {
       this.uTurnTimer += delta;
       const turnProgress = Math.min(1.0, this.uTurnTimer / 0.85); // 0.85s quick 180° power drift U-Turn
@@ -936,16 +935,47 @@ export class RickshawTesla {
       if (input.left) targetSteer -= this.maxSteerAngle;
       if (input.right) targetSteer += this.maxSteerAngle;
 
-      // Snappy, instant steering response (matching top arcade & mobile driving games)
-      this.steerAngle += (targetSteer - this.steerAngle) * 14.0 * delta;
-      steerFactor = this.steerAngle / this.maxSteerAngle;
+      // Snappy, agile steering interpolation
+      this.steerAngle += (targetSteer - this.steerAngle) * 12.0 * delta;
 
-      // Authentic Bangladeshi 3-Wheeler Body Roll & Canopy Sway
-      const targetTilt = -steerFactor * 0.28;
-      this.tilt += (targetTilt - this.tilt) * 14.0 * delta;
+      // Real 3D Vehicle Turning Physics (Bicycle Model):
+      // Steering the front wheel continuously rotates vehicle heading!
+      // In a 3-wheeler auto-rickshaw/easybike, turning is tight, nimble and agile
+      const speedMag = Math.abs(this.speed);
+      const effectiveSpeed = Math.max(8.0, Math.min(48.0, speedMag));
+      const dirSign = this.speed >= 0 ? 1 : -1;
+      
+      // Dynamic turn rate: allows full 360 degree turning and natural 180° U-Turns by holding steer!
+      const turnRate = 3.65;
+      const yawAngularVelocity = -(this.steerAngle / this.maxSteerAngle) * turnRate * (effectiveSpeed / 24.0) * dirSign;
+      this.heading += yawAngularVelocity * delta;
+
+      // Gentle highway caster stabilization: when driving straight without steering,
+      // softly aligns vehicle parallel to road axis (0 or PI)
+      if (!input.left && !input.right) {
+        let normH = this.heading;
+        while (normH > Math.PI) normH -= Math.PI * 2;
+        while (normH < -Math.PI) normH += Math.PI * 2;
+
+        if (Math.abs(normH) < 0.32) {
+          this.heading += (0 - normH) * 4.0 * delta;
+        } else if (Math.PI - Math.abs(normH) < 0.32) {
+          const target = normH > 0 ? Math.PI : -Math.PI;
+          this.heading += (target - normH) * 4.0 * delta;
+        }
+      }
+
+      // Normalize heading to [-PI, PI]
+      while (this.heading > Math.PI) this.heading -= Math.PI * 2;
+      while (this.heading < -Math.PI) this.heading += Math.PI * 2;
+
+      // Authentic Bangladeshi 3-Wheeler Body Roll & Dynamic Canopy Lean
+      const speedRatio = Math.min(1.2, speedMag / 36.0);
+      const targetTilt = -this.steerAngle * (0.24 + speedRatio * 0.12);
+      this.tilt += (targetTilt - this.tilt) * 12.0 * delta;
     }
 
-    // Front Wheel & Handlebar turn angle
+    // Front Wheel & Handlebar turn angle (turns with driver input)
     this.forkGroup.rotation.y = -this.steerAngle * 1.35;
 
     // Acceleration Squat & Braking Nose-Dive on Front Shocks
@@ -976,35 +1006,30 @@ export class RickshawTesla {
       ? (Math.sin(Date.now() * 0.014) * (Math.abs(this.speed) / 50) * 0.014)
       : 0;
 
-    // Dynamic Visual Yaw (Nose turns smoothly into the lane dodge while steering)
-    const yawOffset = this.isUTurning ? 0 : (-steerFactor * 0.30);
-    this.group.rotation.y = this.heading + yawOffset;
+    // 3D Vehicle World Orientation: Complete smooth body rotation
+    this.group.rotation.y = this.heading;
     this.group.rotation.z = this.tilt + rollWobble;
     this.group.position.y = surfaceHeight + roadBounce;
 
-    // Spin wheels
+    // Spin wheels with vehicle velocity
     const spin = (this.speed / 3.6) * delta * 4;
     this.frontWheel.rotation.x += spin;
     this.leftRearWheel.rotation.x += spin;
     this.rightRearWheel.rotation.x += spin;
 
-    // Direct Responsive Lateral Movement & Forward Movement in 3D Space
-    // Forward Vector (heading) and Local Right Vector
+    // 2. Real Vehicle Trajectory Movement in 3D Space
+    // The vehicle moves forward along its authentic heading direction vector:
+    const forwardMove = (this.speed / 3.6) * delta;
     const hx = -Math.sin(this.heading);
     const hz = -Math.cos(this.heading);
+
+    // Responsive agile steering impulse: gives instant arcade responsiveness for weaving between traffic
     const rx = Math.cos(this.heading);
     const rz = -Math.sin(this.heading);
+    const lateralNudge = (this.steerAngle / this.maxSteerAngle) * 5.2 * delta;
 
-    const forwardMove = (this.speed / 3.6) * delta;
-
-    // Snappy direct lateral lane weaving (17.5 m/s at full steer)
-    // Works smoothly even when cruising or maneuvering at low speed
-    const speedRatio = Math.max(0.70, Math.min(1.20, Math.abs(this.speed) / 20.0));
-    const lateralSpeed = 17.5;
-    const lateralMove = steerFactor * lateralSpeed * speedRatio * delta;
-
-    this.group.position.x += hx * forwardMove + rx * lateralMove;
-    this.group.position.z += hz * forwardMove + rz * lateralMove;
+    this.group.position.x += hx * forwardMove + rx * lateralNudge;
+    this.group.position.z += hz * forwardMove + rz * lateralNudge;
 
     // Check if player is near any active Chourasta intersection
     let isAtChourasta = false;
@@ -1019,14 +1044,25 @@ export class RickshawTesla {
       }
     }
 
-    // Outer Street & Sidewalk Boundaries (Wide playable corridor)
+    // Outer Street & Sidewalk Boundaries with smooth deflection
     const maxBoundX = isAtChourasta ? 36.0 : 17.6;
-    if (this.group.position.x < -maxBoundX) {
-      this.group.position.x = -maxBoundX;
-      this.speed *= 0.92;
-    } else if (this.group.position.x > maxBoundX) {
+    if (this.group.position.x > maxBoundX) {
       this.group.position.x = maxBoundX;
-      this.speed *= 0.92;
+      // Smoothly deflect heading parallel to barrier instead of stopping dead
+      if (this.heading < 0 && this.heading > -Math.PI * 0.5) {
+        this.heading += 3.0 * delta;
+      } else if (this.heading < -Math.PI * 0.5) {
+        this.heading -= 3.0 * delta;
+      }
+      this.speed *= 0.94;
+    } else if (this.group.position.x < -maxBoundX) {
+      this.group.position.x = -maxBoundX;
+      if (this.heading > 0 && this.heading < Math.PI * 0.5) {
+        this.heading -= 3.0 * delta;
+      } else if (this.heading > Math.PI * 0.5) {
+        this.heading += 3.0 * delta;
+      }
+      this.speed *= 0.94;
     }
 
     // Roundabout island physical repulsion at (0, 0, ch.z)
