@@ -567,6 +567,36 @@ export class SoundManager {
     } catch (e) {}
   }
 
+
+  // Dynamic Asphalt Tire Drift Screech Sound
+  playTireScreech() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(850, now);
+      filter.frequency.exponentialRampToValueAtTime(1400, now + 0.15);
+      filter.frequency.exponentialRampToValueAtTime(700, now + 0.45);
+      filter.Q.value = 4.0;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.linearRampToValueAtTime(680, now + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 0.45);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.20, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.46);
+    } catch (e) {}
+  }
+
   // Natural Bengali Meme Quote (Visual text display, no robotic TTS voice)
   shoutBengaliQuote(quoteOverride = null) {
     if (this.isMuted) return '';

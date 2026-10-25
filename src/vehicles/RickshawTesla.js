@@ -31,6 +31,15 @@ export class RickshawTesla {
     // Animated fairy lights array
     this.fairyLights = [];
 
+    // Intersection Turning & Chourasta Navigation
+    this.isTurning = false;
+    this.turnProgress = 0;
+    this.turnDirection = null;
+    this.turnChourasta = null;
+    this.onTurnStart = null;
+    this.onTurnComplete = null;
+    this.onRoundaboutBump = null;
+
     this.initModel();
     this.initHeadlights();
 
@@ -830,7 +839,19 @@ export class RickshawTesla {
     }
   }
 
-  update(delta, input) {
+  startTurn(direction, chourasta) {
+    if (this.isTurning) return;
+    this.isTurning = true;
+    this.turnProgress = 0;
+    this.turnDirection = direction;
+    this.turnChourasta = chourasta;
+    this.speed = Math.max(28, Math.abs(this.speed));
+    if (this.onTurnStart) {
+      this.onTurnStart(direction, chourasta?.stationData);
+    }
+  }
+
+  update(delta, input, activeChourastas = []) {
     const currentMax = input.boost ? this.boostMaxSpeed : this.maxSpeed;
 
     const cruiseTarget = this.autoCruiseEnabled ? 30 : 0;
@@ -902,15 +923,79 @@ export class RickshawTesla {
       this.group.position.x += this.steerAngle * (this.speed / 3.6) * delta * 1.6;
     }
 
-    // Allow driving on the road and freely onto the footpath (sidewalk boundary at 16.8m)
-    if (this.group.position.x < -16.8) {
-      this.group.position.x = -16.8;
+    // Check if player is near any active Chourasta intersection
+    let isAtChourasta = false;
+    let currentChourasta = null;
+    if (activeChourastas && activeChourastas.length > 0) {
+      for (const ch of activeChourastas) {
+        if (Math.abs(this.group.position.z - ch.z) < 14.0) {
+          isAtChourasta = true;
+          currentChourasta = ch;
+          break;
+        }
+      }
+    }
+
+    // Dynamic horizontal boundary:
+    // At Chourasta 4-way intersections, cross-street opens wide to ±38m!
+    // On straight highway: opens to ±18.2m covering full asphalt road & sidewalk!
+    const maxBoundX = isAtChourasta ? 38.0 : 18.2;
+
+    if (this.group.position.x < -maxBoundX) {
+      this.group.position.x = -maxBoundX;
       this.steerAngle = Math.max(0, this.steerAngle);
-      this.speed *= 0.92;
-    } else if (this.group.position.x > 16.8) {
-      this.group.position.x = 16.8;
+      this.speed *= 0.94;
+    } else if (this.group.position.x > maxBoundX) {
+      this.group.position.x = maxBoundX;
       this.steerAngle = Math.min(0, this.steerAngle);
-      this.speed *= 0.92;
+      this.speed *= 0.94;
+    }
+
+    // Roundabout island collision at (0, 0, ch.z) with DMP police podium
+    if (isAtChourasta && currentChourasta) {
+      const dx = this.group.position.x;
+      const dz = this.group.position.z - currentChourasta.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < 2.35 && dist > 0.05) {
+        const pushAngle = Math.atan2(dz, dx);
+        this.group.position.x = Math.cos(pushAngle) * 2.4;
+        this.group.position.z = currentChourasta.z + Math.sin(pushAngle) * 2.4;
+        this.speed *= 0.85;
+        if (this.onRoundaboutBump) this.onRoundaboutBump();
+      }
+    }
+
+    // Auto-commit turn when user drives past |x| > 22 into the side avenue
+    if (isAtChourasta && !this.isTurning && currentChourasta) {
+      if (this.group.position.x < -22.5 && input.left) {
+        this.startTurn('left', currentChourasta);
+      } else if (this.group.position.x > 22.5 && input.right) {
+        this.startTurn('right', currentChourasta);
+      }
+    }
+
+    // Dynamic 90-degree intersection turn animation
+    if (this.isTurning) {
+      this.turnProgress += delta * 1.8;
+      const p = Math.min(1.0, this.turnProgress);
+      const sign = (this.turnDirection === 'left') ? -1 : 1;
+
+      // Dynamic drift yaw rotation
+      this.group.rotation.y = sign * (Math.PI / 2) * Math.sin(p * Math.PI * 0.5);
+      this.group.rotation.z = -sign * Math.sin(p * Math.PI) * 0.16;
+
+      if (this.turnProgress >= 1.0) {
+        this.isTurning = false;
+        this.group.rotation.y = 0;
+        this.group.rotation.z = 0;
+        this.group.position.x = sign * 4.2;
+        if (this.onTurnComplete) {
+          this.onTurnComplete(this.turnDirection, this.turnChourasta?.stationData);
+        }
+      }
+    } else {
+      // Normal yaw returns smoothly to 0
+      this.group.rotation.y *= 0.88;
     }
 
     // Animate fairy lights blinking!

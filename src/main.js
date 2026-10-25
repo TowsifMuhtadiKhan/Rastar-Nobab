@@ -10,6 +10,7 @@ import { LootManager } from './items/LootManager.js';
 import { EffectsManager } from './items/EffectsManager.js';
 import { SoundManager } from './audio/SoundManager.js';
 import { HUD } from './ui/HUD.js';
+import { MiniMap } from './ui/MiniMap.js';
 import { MemeGenerator } from './ui/MemeGenerator.js';
 import { toBengaliNumber } from './ui/Textures.js';
 
@@ -118,6 +119,52 @@ class Game {
 
   initUI() {
     this.hud = new HUD(this);
+
+    // Live Top-Down GPS Radar Mini-Map
+    this.miniMap = new MiniMap((turnDirection, stationData) => {
+      if (this.player) {
+        this.player.startTurn(turnDirection, { z: this.player.group.position.z, stationData });
+      }
+    });
+
+    if (this.player) {
+      this.player.onTurnStart = (direction, stationData) => {
+        this.sound.playTireScreech();
+        const dirName = direction === 'left' ? stationData?.left : stationData?.right;
+        this.hud.showSpeech(`🔄 মোড় নেওয়া হচ্ছে: ${dirName || 'আড়াআড়ি রাস্তা'}!`);
+        this.sound.playGaliShoutSound();
+      };
+
+      this.player.onTurnComplete = (direction, stationData) => {
+        const avenueName = (direction === 'left' ? stationData?.left : stationData?.right || 'ঢাকা এভিনিউ').replace(/[⬅➡]/g, '').trim();
+        this.nationalDamage += 1500;
+        this.takaCollected += 1500;
+        this.effects.createScorePopup(
+          this.player.group.position.x,
+          2.8,
+          this.player.group.position.z,
+          '+৳১,৫০০ টার্ন বোনাস!'
+        );
+        this.hud.showSpeech(`ঘুরায়া দিছি নবাব! এখন চলতেছে: ${avenueName}! সাইড দেন!`);
+        this.sound.playCashSound();
+
+        // Update Dhaka GPS tracker station name to the newly entered street
+        if (this.map && this.map.stations) {
+          const curIdx = this.map.currentIndex;
+          if (this.map.stations[curIdx]) {
+            this.map.stations[curIdx].name = avenueName;
+          }
+        }
+      };
+
+      this.player.onRoundaboutBump = () => {
+        this.sound.playCrashSound(0.5);
+        if (Math.random() < 0.35) {
+          this.sound.playPoliceWhistle();
+          this.hud.showSpeech('👮‍♂️ ট্রাফিক সার্জেন্ট: এই নবাব! গোলচত্বর দিয়া সাবধানে ঘোরেন!');
+        }
+      };
+    }
 
     // Populate Highest Record on Start Screen
     const savedRec = parseInt(localStorage.getItem('dhaka_easybike_rush_high_score') || localStorage.getItem('baper_rasta_high_record') || '25400', 10);
@@ -1264,7 +1311,8 @@ class Game {
     const delta = Math.min(this.clock.getDelta(), 0.08);
 
     if (this.isRunning && !this.isPaused) {
-      this.player.update(delta, this.input);
+      const activeChourastas = this.road.getActiveChourastas();
+      this.player.update(delta, this.input, activeChourastas);
 
       const spdNorm = Math.abs(this.player.speed) / this.player.boostMaxSpeed;
       this.sound.updateMotor(spdNorm);
@@ -1276,11 +1324,23 @@ class Game {
       const mapData = this.map.update(pZ);
       this.props.update(delta, pZ);
 
-      this.traffic.update(delta, pZ, this.player.speed, this.road.getActiveChourastas());
+      this.traffic.update(delta, pZ, this.player.speed, activeChourastas);
       this.loot.update(delta, pZ);
       this.effects.update(delta);
 
       this.checkGameCollisions(delta);
+
+      if (this.miniMap) {
+        this.miniMap.update(
+          this.player.group.position,
+          this.player.steerAngle,
+          this.player.speed,
+          activeChourastas,
+          this.traffic.vehicles,
+          this.traffic.vipCar,
+          mapData?.currentStation
+        );
+      }
 
       this.hud.update(
         {
@@ -1299,9 +1359,22 @@ class Game {
     } else {
       // Dynamic living 3D Dhaka street during Start Screen / idle showcase!
       const pZ = this.player.group.position.z;
-      this.traffic.update(delta, pZ, 0, this.road.getActiveChourastas());
+      const activeChourastas = this.road.getActiveChourastas();
+      this.traffic.update(delta, pZ, 0, activeChourastas);
       this.metro.update(delta, pZ);
       this.city.update(delta, pZ);
+
+      if (this.miniMap) {
+        this.miniMap.update(
+          this.player.group.position,
+          0,
+          0,
+          activeChourastas,
+          this.traffic.vehicles,
+          this.traffic.vipCar,
+          null
+        );
+      }
     }
 
     this.updateCamera(delta);

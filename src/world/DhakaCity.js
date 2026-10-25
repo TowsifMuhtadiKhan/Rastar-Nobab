@@ -53,7 +53,8 @@ export class DhakaCity {
     for (let i = 0; i < 32; i++) {
       const isLeft = i % 2 === 0;
       const x = isLeft ? -24 - Math.random() * 5 : 24 + Math.random() * 5;
-      const z = -i * 18;
+      let z = -i * 18;
+      if (this.isChourastaCrossing(z)) z -= 16;
       const width = 13 + Math.random() * 5;
       const height = 20 + Math.random() * 26;
       const depth = 14 + Math.random() * 5;
@@ -167,7 +168,8 @@ export class DhakaCity {
     for (let s = 0; s < 16; s++) {
       const isLeft = s % 2 === 0;
       const x = isLeft ? -16.0 : 16.0;
-      const z = -s * 25 - 12;
+      let z = -s * 25 - 12;
+      if (this.isChourastaCrossing(z)) z -= 16;
       const type = shopTypes[s % shopTypes.length];
       const shop = this.createFootpathShop(type, isLeft);
       shop.position.set(x, 0.28, z);
@@ -180,7 +182,8 @@ export class DhakaCity {
     for (let p = 0; p < 14; p++) {
       const isLeft = p % 2 === 0;
       const x = isLeft ? -14.2 - (p % 3) * 0.3 : 14.2 + (p % 3) * 0.3;
-      const z = -p * 28 - 6;
+      let z = -p * 28 - 6;
+      if (this.isChourastaCrossing(z)) z -= 16;
       const ped = this.createFootpathPedestrian(isLeft, p);
       ped.position.set(x, 0.28, z);
       this.scene.add(ped);
@@ -905,7 +908,8 @@ export class DhakaCity {
         for (const other of this.buildings) {
           if (other.mesh.position.z < minZ) minZ = other.mesh.position.z;
         }
-        const newZ = minZ - 18;
+        let newZ = minZ - 18;
+        if (this.isChourastaCrossing(newZ)) newZ -= 16;
         b.mesh.position.z = newZ;
         b.tank.position.z = newZ;
         b.dish.position.z = newZ;
@@ -923,7 +927,9 @@ export class DhakaCity {
         for (const other of this.footpathShops) {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
-        s.group.position.z = minZ - 25;
+        let nextZ = minZ - 25;
+        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
+        s.group.position.z = nextZ;
         s.group.rotation.z = 0;
         s.isHit = false;
       }
@@ -937,7 +943,9 @@ export class DhakaCity {
         for (const other of this.footpathHumans) {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
-        ped.group.position.z = minZ - 28;
+        let nextZ = minZ - 28;
+        if (this.isChourastaCrossing(nextZ)) nextZ -= 16;
+        ped.group.position.z = nextZ;
         ped.group.rotation.z = 0;
         ped.isHit = false;
       }
