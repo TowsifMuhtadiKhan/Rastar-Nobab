@@ -931,6 +931,7 @@ class Game {
     for (const prop of propHits) {
       this.sound.playCrashSound(1.1);
       this.sound.playDhapashSound();
+      this.sound.playKiRagKorlaMusic();
       this.screenShake = 0.45;
       this.nationalDamage += prop.damage;
       this.takaCollected += prop.taka;
@@ -944,6 +945,91 @@ class Game {
 
       this.loot.burstLootAt(prop.group.position.x, prop.group.position.z, 2);
     }
+    // 2.5. Collision with Footpath Sidewalk Humans, Shops & Poles (DhakaCity elements!)
+    if (this.city && typeof this.city.checkCollisions === 'function') {
+      const cityHits = this.city.checkCollisions(pBounds);
+      for (const hit of cityHits) {
+        if (hit.type === 'human') {
+          this.sound.playDhapashSound();
+          this.sound.playTakaChingSound(500);
+          this.sound.playKiRagKorlaMusic(); // 🎵 "কী রাগ করলা?!" viral music!
+          this.screenShake = 0.50;
+          this.takaCollected += 500;
+          this.nationalDamage += 3000;
+          this.effects.createCrashSparks(hit.x, 0.8, hit.z, 14);
+          this.loot.burstLootAt(hit.x, hit.z, 3);
+          this.effects.showFloatingText('+৳ ৫০০', '#ffd700', '26px');
+
+          const pedGalis = [
+            'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
+            'ফুটপাতে গাড়ি উঠাইয়া মানুষ মারেন?! কী রাগ করলা?!',
+            'রাস্তা কি তোমাগো বাপের?! ফুটপাতেও রিকশা চালায়!',
+            'আইছে আমার দেশি টেসলা! কী রাগ করলা?!',
+            'হাড়গোড় ভাইঙ্গা দিলেন ভাইরে ভাই! কী রাগ করলা?!'
+          ];
+          const galiText = pedGalis[Math.floor(Math.random() * pedGalis.length)];
+          const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'ধপাস!';
+          const gali = this.effects.createDhapashImpact(
+            hit.x, 1.0, hit.z, this.camera, starWord, galiText, 500
+          );
+          this.sound.speakGali(gali);
+          this.hud.showSpeech(gali);
+
+        } else if (hit.type === 'shop') {
+          this.sound.playCrashSound(1.2);
+          this.sound.playDhapashSound();
+          this.sound.playKiRagKorlaMusic(); // 🎵 "কী রাগ করলা?!" viral music!
+          this.screenShake = 0.60;
+          this.takaCollected += 800;
+          this.nationalDamage += 6000;
+          this.effects.createCrashSparks(hit.x, 1.0, hit.z, 20);
+          this.loot.burstLootAt(hit.x, hit.z, 4);
+
+          // Physical bounce back from solid stall
+          this.player.speed = -8;
+          pPos.z += 1.2;
+
+          const shopGalis = [
+            'দোকান ভাইঙ্গা সব শেষ কইরা দিলেন! কী রাগ করলা?!',
+            'চা-বিস্কুট সব ড্রেনে পড়ল! কী রাগ করলা?!',
+            'ফুটপাতের দোকানে গুঁতা মারলা কেন ভাই?! কী রাগ করলা?!',
+            'ক্ষতিপূরণ কে দিব?! কী রাগ করলা নাকি সোনা?!'
+          ];
+          const galiText = shopGalis[Math.floor(Math.random() * shopGalis.length)];
+          const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'চুরমার!';
+          const gali = this.effects.createDhapashImpact(
+            hit.x, 1.2, hit.z, this.camera, starWord, galiText, 6000
+          );
+          this.sound.speakGali(gali);
+          this.hud.showSpeech(gali);
+
+        } else if (hit.type === 'pole') {
+          this.sound.playCrashSound(1.5);
+          this.sound.playDhapashSound();
+          this.sound.playKiRagKorlaMusic(); // 🎵 "কী রাগ করলা?!" viral music!
+          this.screenShake = 0.75;
+          this.nationalDamage += 8000;
+          this.effects.createCrashSparks(hit.x, 1.8, hit.z, 30);
+
+          // Violent rebound off solid concrete electric pole
+          this.player.speed = -14;
+          pPos.z += 1.8;
+
+          const poleGalis = [
+            'বৈদ্যুতিক খুঁটিতে গুঁতা মারলা?! কী রাগ করলা?!',
+            'খুঁটির লগে যুদ্ধ বাঁধাইছো নি?! ব্রেক ধরো!',
+            'শর্ট সার্কিট হইব তো! কী রাগ করলা?!'
+          ];
+          const galiText = poleGalis[Math.floor(Math.random() * poleGalis.length)];
+          const gali = this.effects.createDhapashImpact(
+            hit.x, 1.8, hit.z, this.camera, 'ধড়াম!', galiText, 8000
+          );
+          this.sound.speakGali(gali);
+          this.hud.showSpeech(gali);
+        }
+      }
+    }
+
 
     // 3. Collect Banknotes & Parts Dropped from Crashes
     const collected = this.loot.checkPickup(pBounds);

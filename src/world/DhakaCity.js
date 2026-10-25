@@ -924,6 +924,8 @@ export class DhakaCity {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
         s.group.position.z = minZ - 25;
+        s.group.rotation.z = 0;
+        s.isHit = false;
       }
     }
 
@@ -936,6 +938,8 @@ export class DhakaCity {
           if (other.group.position.z < minZ) minZ = other.group.position.z;
         }
         ped.group.position.z = minZ - 28;
+        ped.group.rotation.z = 0;
+        ped.isHit = false;
       }
       ped.group.position.y = 0.28 + Math.abs(walkBob);
     }
@@ -1000,6 +1004,74 @@ export class DhakaCity {
     }
   }
 
+  checkCollisions(playerBounds) {
+    const hits = [];
+    const now = Date.now();
+
+    // 1. Check collisions with Footpath Walking Humans
+    for (const ped of this.footpathHumans) {
+      if (ped.isHit && now - ped.hitTime < 3000) continue;
+      const dx = Math.abs(ped.group.position.x - playerBounds.x);
+      const dz = Math.abs(ped.group.position.z - playerBounds.z);
+
+      if (dx < 1.35 && dz < 1.6) {
+        ped.isHit = true;
+        ped.hitTime = now;
+        // Ragdoll knockback animation onto sidewalk
+        ped.group.position.x += (ped.isLeft ? -1.6 : 1.6);
+        ped.group.rotation.z = (ped.isLeft ? -1 : 1) * Math.PI / 2.2;
+        ped.group.rotation.y += 0.8;
+
+        hits.push({
+          type: 'human',
+          x: ped.group.position.x,
+          z: ped.group.position.z,
+          item: ped
+        });
+      }
+    }
+
+    // 2. Check collisions with Footpath Shops & Stalls
+    for (const shop of this.footpathShops) {
+      if (shop.isHit && now - shop.hitTime < 3500) continue;
+      const dx = Math.abs(shop.group.position.x - playerBounds.x);
+      const dz = Math.abs(shop.group.position.z - playerBounds.z);
+
+      if (dx < 2.0 && dz < 2.2) {
+        shop.isHit = true;
+        shop.hitTime = now;
+        // Tilt and knock shop sideways
+        shop.group.rotation.z = (shop.isLeft ? -0.35 : 0.35);
+        shop.group.position.x += (shop.isLeft ? -0.6 : 0.6);
+
+        hits.push({
+          type: 'shop',
+          shopType: shop.type,
+          x: shop.group.position.x,
+          z: shop.group.position.z,
+          item: shop
+        });
+      }
+    }
+
+    // 3. Check collisions with Concrete Electric Poles
+    for (const pole of this.electricPoles) {
+      const dx = Math.abs(pole.position.x - playerBounds.x);
+      const dz = Math.abs(pole.position.z - playerBounds.z);
+
+      if (dx < 1.15 && dz < 1.35) {
+        hits.push({
+          type: 'pole',
+          x: pole.position.x,
+          z: pole.position.z,
+          item: pole
+        });
+      }
+    }
+
+    return hits;
+  }
+
   reset() {
     for (let i = 0; i < this.buildings.length; i++) {
       const b = this.buildings[i];
@@ -1014,9 +1086,13 @@ export class DhakaCity {
     }
     for (let s = 0; s < this.footpathShops.length; s++) {
       this.footpathShops[s].group.position.z = -s * 25 - 12;
+      this.footpathShops[s].group.rotation.z = 0;
+      this.footpathShops[s].isHit = false;
     }
     for (let p = 0; p < this.footpathHumans.length; p++) {
       this.footpathHumans[p].group.position.z = -p * 28 - 6;
+      this.footpathHumans[p].group.rotation.z = 0;
+      this.footpathHumans[p].isHit = false;
     }
     for (let p = 0; p < this.electricPoles.length; p++) {
       this.electricPoles[p].position.z = -p * 32;
