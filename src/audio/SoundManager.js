@@ -73,7 +73,8 @@ export class SoundManager {
   async preloadKiRagKorla() {
     if (typeof window === 'undefined') return;
     try {
-      const res = await fetch('/audio/ki_rag_korla.wav');
+      let res = await fetch('/audio/rag_korla.mp3');
+      if (!res.ok) res = await fetch('/audio/ki_rag_korla.wav');
       if (res.ok) this.rawKiRagKorlaData = await res.arrayBuffer();
       if (this.ctx && !this.kiRagKorlaBuffer) {
         this.decodeKiRagKorla();
