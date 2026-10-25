@@ -875,6 +875,10 @@ class Game {
       const dz = pPos.z - ch.z;
       const distToCenter = Math.sqrt(dx * dx + dz * dz);
       if (distToCenter < ch.radius + 0.65) {
+        const now = Date.now();
+        if (now - (this.lastIslandHitTime || 0) < 2200) return;
+        this.lastIslandHitTime = now;
+
         this.sound.playCrashSound(1.4);
         this.sound.playDhapashSound();
         this.sound.playPoliceWhistle();
@@ -920,6 +924,10 @@ class Game {
       const nearestPillarZ = Math.round(pPos.z / 40) * 40;
       const distToPillar = Math.abs(pPos.z - nearestPillarZ);
       if (distToPillar < 1.25) {
+        const now = Date.now();
+        if (now - (this.lastPillarHitTime || 0) < 2200) return;
+        this.lastPillarHitTime = now;
+
         // Hard collision into solid concrete Metro pillar!
         this.sound.playCrashSound(1.6);
         this.sound.playDhapashSound();
@@ -1140,8 +1148,12 @@ class Game {
     // 2.5. Collision with Footpath Sidewalk Humans, Shops & Poles (DhakaCity elements!)
     if (this.city && typeof this.city.checkCollisions === 'function') {
       const cityHits = this.city.checkCollisions(pBounds);
+      const now = Date.now();
       for (const hit of cityHits) {
         if (hit.type === 'human') {
+          if (now - (this.lastPedHitTime || 0) < 1800) continue;
+          this.lastPedHitTime = now;
+
           this.sound.playDhapashSound();
           this.sound.playTakaChingSound(500);
           this.screenShake = 0.50;
@@ -1169,6 +1181,9 @@ class Game {
           }, 350);
 
         } else if (hit.type === 'shop') {
+          if (now - (this.lastShopHitTime || 0) < 2200) continue;
+          this.lastShopHitTime = now;
+
           this.sound.playCrashSound(1.2);
           this.sound.playDhapashSound();
           this.screenShake = 0.60;
@@ -1199,6 +1214,9 @@ class Game {
           }, 350);
 
         } else if (hit.type === 'pole') {
+          if (now - (this.lastPoleHitTime || 0) < 2200) continue;
+          this.lastPoleHitTime = now;
+
           this.sound.playCrashSound(1.5);
           this.sound.playDhapashSound();
           this.screenShake = 0.75;

@@ -1089,64 +1089,68 @@ export class DhakaCity {
     const hits = [];
     const now = Date.now();
 
-    // 1. Check collisions with Footpath Walking Humans
-    for (const ped of this.footpathHumans) {
-      if (ped.isHit && now - ped.hitTime < 3000) continue;
-      const dx = Math.abs(ped.group.position.x - playerBounds.x);
-      const dz = Math.abs(ped.group.position.z - playerBounds.z);
+    // 1. Check collisions with Footpath Walking Humans (Only if player mounts sidewalk)
+    if (Math.abs(playerBounds.x) >= 12.8) {
+      for (const ped of this.footpathHumans) {
+        if (ped.isHit && now - ped.hitTime < 3000) continue;
+        const dx = Math.abs(ped.group.position.x - playerBounds.x);
+        const dz = Math.abs(ped.group.position.z - playerBounds.z);
 
-      if (dx < 1.35 && dz < 1.6) {
-        ped.isHit = true;
-        ped.hitTime = now;
-        // Ragdoll knockback animation onto sidewalk
-        ped.group.position.x += (ped.isLeft ? -1.6 : 1.6);
-        ped.group.rotation.z = (ped.isLeft ? -1 : 1) * Math.PI / 2.2;
-        ped.group.rotation.y += 0.8;
+        if (dx < 1.15 && dz < 1.4) {
+          ped.isHit = true;
+          ped.hitTime = now;
+          // Ragdoll knockback animation onto sidewalk
+          ped.group.position.x += (ped.isLeft ? -1.6 : 1.6);
+          ped.group.rotation.z = (ped.isLeft ? -1 : 1) * Math.PI / 2.2;
+          ped.group.rotation.y += 0.8;
 
-        hits.push({
-          type: 'human',
-          x: ped.group.position.x,
-          z: ped.group.position.z,
-          item: ped
-        });
+          hits.push({
+            type: 'human',
+            x: ped.group.position.x,
+            z: ped.group.position.z,
+            item: ped
+          });
+        }
       }
-    }
 
-    // 2. Check collisions with Footpath Shops & Stalls
-    for (const shop of this.footpathShops) {
-      if (shop.isHit && now - shop.hitTime < 3500) continue;
-      const dx = Math.abs(shop.group.position.x - playerBounds.x);
-      const dz = Math.abs(shop.group.position.z - playerBounds.z);
+      // 2. Check collisions with Footpath Shops & Stalls
+      for (const shop of this.footpathShops) {
+        if (shop.isHit && now - shop.hitTime < 3500) continue;
+        const dx = Math.abs(shop.group.position.x - playerBounds.x);
+        const dz = Math.abs(shop.group.position.z - playerBounds.z);
 
-      if (dx < 2.0 && dz < 2.2) {
-        shop.isHit = true;
-        shop.hitTime = now;
-        // Tilt and knock shop sideways
-        shop.group.rotation.z = (shop.isLeft ? -0.35 : 0.35);
-        shop.group.position.x += (shop.isLeft ? -0.6 : 0.6);
+        if (dx < 1.6 && dz < 1.8) {
+          shop.isHit = true;
+          shop.hitTime = now;
+          // Tilt and knock shop sideways
+          shop.group.rotation.z = (shop.isLeft ? -0.35 : 0.35);
+          shop.group.position.x += (shop.isLeft ? -0.6 : 0.6);
 
-        hits.push({
-          type: 'shop',
-          shopType: shop.type,
-          x: shop.group.position.x,
-          z: shop.group.position.z,
-          item: shop
-        });
+          hits.push({
+            type: 'shop',
+            shopType: shop.type,
+            x: shop.group.position.x,
+            z: shop.group.position.z,
+            item: shop
+          });
+        }
       }
-    }
 
-    // 3. Check collisions with Concrete Electric Poles
-    for (const pole of this.electricPoles) {
-      const dx = Math.abs(pole.position.x - playerBounds.x);
-      const dz = Math.abs(pole.position.z - playerBounds.z);
+      // 3. Check collisions with Concrete Electric Poles
+      for (const pole of this.electricPoles) {
+        if (pole.hitTime && now - pole.hitTime < 3000) continue;
+        const dx = Math.abs(pole.position.x - playerBounds.x);
+        const dz = Math.abs(pole.position.z - playerBounds.z);
 
-      if (dx < 1.15 && dz < 1.35) {
-        hits.push({
-          type: 'pole',
-          x: pole.position.x,
-          z: pole.position.z,
-          item: pole
-        });
+        if (dx < 0.95 && dz < 1.15) {
+          pole.hitTime = now;
+          hits.push({
+            type: 'pole',
+            x: pole.position.x,
+            z: pole.position.z,
+            item: pole
+          });
+        }
       }
     }
 

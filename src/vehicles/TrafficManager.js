@@ -170,15 +170,18 @@ export class TrafficManager {
 
   checkCollisions(playerBounds) {
     const hits = [];
+    const now = Date.now();
     for (let i = 0; i < this.vehicles.length; i++) {
       const v = this.vehicles[i];
       if (!v.active) continue;
+      if (v.hitTime && now - v.hitTime < 1800) continue;
 
       const vb = v.getBounds();
       const dx = Math.abs(vb.x - playerBounds.x);
       const dz = Math.abs(vb.z - playerBounds.z);
 
       if (dx < (vb.width + playerBounds.width) * 0.45 && dz < (vb.length + playerBounds.length) * 0.45) {
+        v.hitTime = now;
         hits.push(v);
       }
     }

@@ -470,13 +470,17 @@ export class SoundManager {
   // Voice Speech Synthesis for Dhaka Street Gali
   speakGali(text) {
     if (this.isMuted) return;
+    const now = Date.now();
+    if (now - (this.lastVoiceTime || 0) < 3200) return; // Strict throttle: no spamming speech!
+    this.lastVoiceTime = now;
 
     // 1. ALWAYS play real audible shouted voice audio clip
     this.playGaliShoutSound();
 
-    // 2. Browser Voice Speech
+    // 2. Browser Voice Speech: Cancel any queued speech backlog first so speech NEVER plays continuously!
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     try {
+      window.speechSynthesis.cancel();
       const voices = window.speechSynthesis.getVoices();
       const bnVoice = voices.find(v => v.lang && (v.lang.startsWith('bn') || v.lang.includes('Bengali') || v.lang.includes('Bangla')));
 
@@ -504,13 +508,17 @@ export class SoundManager {
   // Authentic High-Energy Rickshawala Driver Voice Speech & Audio
   speakDriverVoice(text) {
     if (this.isMuted) return;
+    const now = Date.now();
+    if (now - (this.lastDriverVoiceTime || 0) < 3200) return; // Strict throttle: no spamming!
+    this.lastDriverVoiceTime = now;
 
     // 1. Play energetic driver horn/bell tone
     this.playDriverShoutSound();
 
-    // 2. Browser Voice Speech Output
+    // 2. Browser Voice Speech Output: Clear any pending speech backlog
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     try {
+      window.speechSynthesis.cancel();
       const voices = window.speechSynthesis.getVoices();
       const bnVoice = voices.find(v => v.lang && (v.lang.startsWith('bn') || v.lang.includes('Bengali') || v.lang.includes('Bangla')));
 
