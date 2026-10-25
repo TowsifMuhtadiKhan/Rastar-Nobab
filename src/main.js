@@ -702,9 +702,14 @@ class Game {
       if (distToPillar < 1.25) {
         // Hard collision into solid concrete Metro pillar!
         this.sound.playCrashSound(1.6);
+        this.sound.playDhapashSound();
         this.screenShake = 0.85;
         this.effects.createCrashSparks(pPos.x, 1.2, pPos.z, 35);
-        this.effects.showFloatingText('💥 মেট্রো পিলারে প্রচণ্ড ধাক্কা!', '#ff0033', '30px');
+        const gali = this.effects.createDhapashImpact(
+          pPos.x, 1.4, nearestPillarZ, this.camera, 'ধড়াম!', 'পিলারের সাথে যুদ্ধ বাঁধাইছো নি?! ব্রেক ধরো!', null
+        );
+        this.sound.speakGali(gali);
+        this.hud.showSpeech(gali);
         this.nationalDamage += 10000;
         this.player.speed = -14; // Rebound backwards!
         pPos.z = nearestPillarZ + 1.8;
@@ -744,15 +749,18 @@ class Game {
     for (const car of hits) {
       if (car.isVIP) {
         this.sound.playCrashSound(1.5);
+        this.sound.playDhapashSound();
         this.screenShake = 0.75;
         this.effects.createCrashSparks(pBounds.x, 1.2, pBounds.z, 30);
         this.nationalDamage += 50000;
         this.takaCollected += 5000;
 
         this.sound.playTurboSound();
-        this.sound.shoutBengaliQuote('ভিআইপি গাড়ি চূর্ণবিচূর্ণ!');
-        this.hud.showSpeech('ভিআইপি গাড়ি শিকার! রাস্তা কার বাপের?!');
-        this.effects.showFloatingText('💥 ভিআইপি গাড়ি শিকার! +৳ ৫০০০!', '#ffd700', '32px');
+        const gali = this.effects.createDhapashImpact(
+          car.group.position.x, 1.4, car.group.position.z, this.camera, 'চুরমার!', 'ভিআইপি প্রটোকল শেষ! রাস্তা কার বাপের?!', 5000
+        );
+        this.sound.speakGali(gali);
+        this.hud.showSpeech(gali);
 
         this.player.speed = -8; // Bounce back
         pPos.z += 1.2;
@@ -764,23 +772,31 @@ class Game {
         this.takaCollected += val;
         this.nationalDamage += 2500;
         this.sound.playTakaChingSound(val);
+        this.sound.playDhapashSound();
 
-        const quote = 'আমার কোনো দোষ নাই মামা!';
-        this.sound.shoutBengaliQuote(quote);
-        this.hud.showSpeech(quote);
+        const customGali = car.isSergeant ? 'সার্জেন্টকে ধাক্কা?! লাইসেন্স বাতিল কইরা দিমু!' : null;
+        const gali = this.effects.createDhapashImpact(
+          car.group.position.x, 0.9, car.group.position.z, this.camera, 'পটাস!', customGali, val
+        );
+        this.sound.speakGali(gali);
+        this.hud.showSpeech(gali);
 
-        this.effects.showFloatingText('আমার কোনো দোষ নাই মামা! +৳ ' + val, '#ffff00', '26px');
         this.effects.createCrashSparks(car.group.position.x, 0.5, car.group.position.z, 8);
         this.loot.burstLootAt(car.group.position.x, car.group.position.z, 3);
         this.traffic.removeVehicle(car);
       } else {
         // Collision with Bus, HiAce, Sedan or CNG
         this.sound.playCrashSound(1.2);
+        this.sound.playDhapashSound();
         this.screenShake = 0.55;
         this.effects.createCrashSparks(pBounds.x, 0.8, pBounds.z, 20);
 
-        this.sound.shoutBengaliQuote('আমার কোনো দোষ নাই মামা!');
-        this.hud.showSpeech('আমার কোনো দোষ নাই মামা!');
+        // Comic DHAPASH Impact & Dhaka Street Gali!
+        const gali = this.effects.createDhapashImpact(
+          car.group.position.x, 1.2, car.group.position.z, this.camera, 'ধপাস!', null, 250
+        );
+        this.sound.speakGali(gali);
+        this.hud.showSpeech(gali);
 
         const leveledUp = this.player.addCarPart();
         this.sound.playPartPickupSound();
@@ -789,8 +805,6 @@ class Game {
         if (leveledUp) {
           this.effects.showFloatingText(`★ টেসলা লেভেল ${this.player.upgradeLevel} আপগ্রেড! ★`, '#00f0ff', '30px');
           this.sound.playTurboSound();
-        } else {
-          this.effects.showFloatingText('🚗 গাড়ির পার্টস হজম!', '#ffeb3b', '24px');
         }
 
         // PHYSICAL SEPARATION: Do NOT let player phase or glide through the car!
@@ -816,11 +830,18 @@ class Game {
     const propHits = this.props.checkCollisions(pBounds);
     for (const prop of propHits) {
       this.sound.playCrashSound(1.1);
+      this.sound.playDhapashSound();
       this.screenShake = 0.45;
       this.nationalDamage += prop.damage;
       this.takaCollected += prop.taka;
       this.effects.createCrashSparks(prop.group.position.x, 0.8, prop.group.position.z, 16);
-      this.effects.showFloatingText(`${prop.name} +৳ ${prop.damage}`, '#f59e0b', '24px');
+
+      const gali = this.effects.createDhapashImpact(
+        prop.group.position.x, 0.8, prop.group.position.z, this.camera, 'ঠাস!', `${prop.name} চুরমার! দোকানদার বেহুঁশ!`, prop.damage
+      );
+      this.sound.speakGali(gali);
+      this.hud.showSpeech(gali);
+
       this.loot.burstLootAt(prop.group.position.x, prop.group.position.z, 2);
     }
 

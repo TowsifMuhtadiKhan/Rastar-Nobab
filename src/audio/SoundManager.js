@@ -341,6 +341,73 @@ export class SoundManager {
   }
 
   // Pleasant, gentle coin pickup chime
+
+  // Comic "DHAPASH!" / "DHOM!" Punchy Cartoon Impact Sound
+  playDhapashSound() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted || !this.masterGain) return;
+
+    try {
+      const now = this.ctx.currentTime;
+
+      // 1. Comic punch body (overdriven triangle with bouncy pitch dive)
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(45, now + 0.28);
+
+      oscGain.gain.setValueAtTime(0.28, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc.connect(oscGain);
+      oscGain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.32);
+
+      // 2. Comic slap noise transient
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.12);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.025));
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(1200, now);
+      noiseFilter.Q.setValueAtTime(1.8, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.24, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(this.masterGain);
+      noise.start(now);
+    } catch (e) {}
+  }
+
+  // Voice Speech Synthesis for Dhaka Street Gali (when supported by browser)
+  speakGali(text) {
+    if (this.isMuted || typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const clean = text.replace(/[^ঀ-৿a-zA-Z0-9\s!?,]/g, '');
+      const utt = new SpeechSynthesisUtterance(clean);
+      utt.lang = 'bn-BD';
+      utt.rate = 1.25; // Fast, energetic Dhaka tempo
+      utt.pitch = 1.15;
+      utt.volume = 0.9;
+      const voices = window.speechSynthesis.getVoices();
+      const bnVoice = voices.find(v => v.lang && v.lang.startsWith('bn'));
+      if (bnVoice) utt.voice = bnVoice;
+      window.speechSynthesis.speak(utt);
+    } catch (e) {}
+  }
+
   playPartPickupSound() {
     this.ensureContext();
     if (!this.ctx || this.isMuted || !this.masterGain) return;
