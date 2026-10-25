@@ -67,23 +67,27 @@ export class EffectsManager {
   createDhapashImpact(x, y, z, camera, customWord = null, customGali = null, bonusTaka = null) {
     if (!this.uiContainer) return '';
 
-    // Convert 3D world hit coordinates to 2D screen coordinates
-    let sx = window.innerWidth / 2;
-    let sy = window.innerHeight * 0.45;
+    // STRICTLY position on the LEFT or RIGHT side of the screen!
+    // The center 60% of the screen is kept 100% CLEAR so driver has an unobstructed view of the road ahead!
+    const isLeft = (x < 0) || (Math.abs(x) < 0.6 && Math.random() > 0.5);
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
 
+    // Side X coordinate: 18% from left or 18% from right
+    let sx = isLeft ? Math.max(95, screenW * 0.18) : Math.min(screenW - 95, screenW * 0.82);
+
+    // Project Y height from hit
+    let sy = screenH * 0.38;
     if (camera) {
       const v = new THREE.Vector3(x, y + 0.6, z);
       v.project(camera);
-      // Only project if roughly in front of camera
       if (v.z <= 1.0) {
-        sx = (v.x * 0.5 + 0.5) * window.innerWidth;
-        sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        sy = (-v.y * 0.5 + 0.5) * screenH;
       }
     }
 
-    // Keep comfortably within visible screen edges
-    sx = Math.max(90, Math.min(window.innerWidth - 90, sx));
-    sy = Math.max(100, Math.min(window.innerHeight - 110, sy));
+    // Clamp Y strictly away from Top HUD and Bottom Controls
+    sy = Math.max(130, Math.min(screenH - 135, sy));
 
     const words = ['ধপাস!', 'ধড়াম!', 'পটাস!', 'ঠাস!', 'ধপাস!', 'চুরমার!', 'ভ্যাবাচ্যাকা!'];
     const word = customWord || words[Math.floor(Math.random() * words.length)];
@@ -138,7 +142,7 @@ export class EffectsManager {
     if (bonusTaka) {
       const taka = document.createElement('div');
       taka.className = 'floating-taka-bonus';
-      taka.style.left = `${sx + 55}px`;
+      taka.style.left = `${sx + (isLeft ? 45 : -45)}px`;
       taka.style.top = `${sy - 20}px`;
       taka.innerText = `+৳ ${bonusTaka}`;
       this.uiContainer.appendChild(taka);
