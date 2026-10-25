@@ -706,6 +706,7 @@ class Game {
         this.sound.playCrashSound(1.4);
         this.sound.playDhapashSound();
         this.sound.playPoliceWhistle();
+        this.sound.playKiRagKorlaMusic();
         this.screenShake = 0.65;
         this.effects.createCrashSparks(pPos.x, 0.9, pPos.z, 28);
 
@@ -795,6 +796,7 @@ class Game {
       if (car.isVIP) {
         this.sound.playCrashSound(1.5);
         this.sound.playDhapashSound();
+        this.sound.playKiRagKorlaMusic();
         this.screenShake = 0.75;
         this.effects.createCrashSparks(pBounds.x, 1.2, pBounds.z, 30);
         this.nationalDamage += 50000;
@@ -818,10 +820,20 @@ class Game {
         this.nationalDamage += 2500;
         this.sound.playTakaChingSound(val);
         this.sound.playDhapashSound();
+        this.sound.playKiRagKorlaMusic(); // 🎵 Background viral music: "Ki rag korla?!"
 
-        const customGali = car.isSergeant ? 'সার্জেন্টকে ধাক্কা?! লাইসেন্স বাতিল কইরা দিমু!' : null;
+        const pedGalis = [
+          'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
+          'আরে ভাই দেইখা হাঁটেন! কী রাগ করলা?!',
+          'রাস্তা কি তোমাগো বাপের?! কী রাগ করলা?!',
+          'ফুটপাতে ধাক্কা দিলেন কেন ভাই?! কী রাগ করলা?!'
+        ];
+        const customGali = car.isSergeant 
+          ? 'সার্জেন্টকে ধাক্কা?! লাইসেন্স বাতিল কইরা দিমু! কী রাগ করলা?!' 
+          : pedGalis[Math.floor(Math.random() * pedGalis.length)];
+        const starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'পটাস!';
         const gali = this.effects.createDhapashImpact(
-          car.group.position.x, 0.9, car.group.position.z, this.camera, 'পটাস!', customGali, val
+          car.group.position.x, 0.9, car.group.position.z, this.camera, starWord, customGali, val
         );
         this.sound.speakGali(gali);
         this.hud.showSpeech(gali);
@@ -833,6 +845,7 @@ class Game {
         // Collision with Bus, HiAce, Sedan or CNG
         this.sound.playCrashSound(1.2);
         this.sound.playDhapashSound();
+        this.sound.playKiRagKorlaMusic(); // 🎵 Background viral music: "Ki rag korla?!"
         this.screenShake = 0.55;
         this.effects.createCrashSparks(pBounds.x, 0.8, pBounds.z, 20);
 
@@ -855,10 +868,12 @@ class Game {
             'গ্যাস নাই সিলিন্ডারে, আবার পিছে গুঁতা মারেন!',
             'আরে ভাই দেইখা চালান! গ্যাস সিলিন্ডার ব্লাস্ট হইব তো!',
             'সিএনজিওয়ালার সাথে টক্কর?! মিরপুর ১০ চেনেন?!',
-            'রাগ করলা? সিএনজির সামনে এমন ভাব লন ক্যান?!'
+            'রাগ করলা? সিএনজির সামনে এমন ভাব লন ক্যান?!',
+            'কী রাগ করলা?! রাগ করলা নাকি সোনা?!',
+            'কী রাগ করলা?! সিএনজিরে বাড়ি মারলা কেন?!'
           ];
           customGali = cngGalis[Math.floor(Math.random() * cngGalis.length)];
-          starWord = Math.random() > 0.5 ? 'ধপাস!' : 'পটাস!';
+          starWord = Math.random() > 0.4 ? '🎵 কী রাগ করলা?! 🎵' : 'ধপাস!';
         }
 
         // Comic DHAPASH Impact & Dhaka Street Gali!

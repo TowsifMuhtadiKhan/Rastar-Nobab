@@ -70,6 +70,27 @@ export class SoundManager {
     }
   }
 
+  async preloadKiRagKorla() {
+    if (typeof window === 'undefined') return;
+    try {
+      const res = await fetch('/audio/ki_rag_korla.wav');
+      if (res.ok) this.rawKiRagKorlaData = await res.arrayBuffer();
+      if (this.ctx && !this.kiRagKorlaBuffer) {
+        this.decodeKiRagKorla();
+      }
+    } catch (e) {
+      console.warn('Preload Ki Rag Korla audio failed:', e);
+    }
+  }
+
+  async decodeKiRagKorla() {
+    if (!this.ctx || !this.rawKiRagKorlaData || this.kiRagKorlaBuffer) return;
+    try {
+      const copy = this.rawKiRagKorlaData.slice(0);
+      this.kiRagKorlaBuffer = await this.ctx.decodeAudioData(copy);
+    } catch (e) {}
+  }
+
   init() {
     if (this.ctx) return;
     try {
@@ -91,6 +112,9 @@ export class SoundManager {
       this.masterGain.connect(this.compressor);
       this.compressor.connect(this.ctx.destination);
 
+      if (this.rawKiRagKorlaData && !this.kiRagKorlaBuffer) {
+        this.decodeKiRagKorla();
+      }
       if (this.rawAutoHornData && !this.autoHornBuffer) {
         this.decodeAutoHorn();
       }
@@ -554,6 +578,47 @@ export class SoundManager {
       osc1.stop(now + duration + 0.05);
       osc2.stop(now + duration + 0.05);
     } catch (e) {}
+  }
+
+  // Viral Bengali Meme Hit Music: "কী রাগ করলা?!"
+  playKiRagKorlaMusic() {
+    if (this.isMuted) return;
+
+    // Cooldown 1.5s to avoid overlapping
+    const now = Date.now();
+    if (this.lastKiRagKorlaTime && now - this.lastKiRagKorlaTime < 1500) {
+      return;
+    }
+    this.lastKiRagKorlaTime = now;
+
+    // 1. Play musical background sting
+    if (this.kiRagKorlaAudio) {
+      try {
+        this.kiRagKorlaAudio.currentTime = 0;
+        this.kiRagKorlaAudio.volume = 0.75;
+        this.kiRagKorlaAudio.play().catch(() => {});
+      } catch (e) {}
+    } else if (this.ctx && this.kiRagKorlaBuffer && this.masterGain) {
+      try {
+        const source = this.ctx.createBufferSource();
+        source.buffer = this.kiRagKorlaBuffer;
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.setValueAtTime(0.7, this.ctx.currentTime);
+        source.connect(gainNode);
+        gainNode.connect(this.masterGain);
+        source.start();
+      } catch (e) {}
+    }
+
+    // 2. Playful Bengali TTS dialogue utterance
+    const phrases = [
+      'কী রাগ করলা?!',
+      'রাগ করলা নাকি সোনা?!',
+      'কী রাগ করলা নাকি?!',
+      'আরে ভাই রাগ করলা?!'
+    ];
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    this.speakGali(phrase);
   }
 
 }
