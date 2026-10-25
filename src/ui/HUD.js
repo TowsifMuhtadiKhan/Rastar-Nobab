@@ -32,31 +32,6 @@ export class HUD {
       this.radarCtx = this.radarCanvas.getContext('2d');
     }
 
-    // Horn Button
-    const hornBtn = document.getElementById('btn-horn');
-    if (hornBtn) {
-      hornBtn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        this.game.triggerHorn(true);
-      });
-      hornBtn.addEventListener('pointerup', (e) => {
-        e.preventDefault();
-        this.game.triggerHorn(false);
-      });
-    }
-
-    // Boost Button
-    const boostBtn = document.getElementById('btn-boost');
-    if (boostBtn) {
-      boostBtn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        this.game.input.boost = true;
-      });
-      boostBtn.addEventListener('pointerup', (e) => {
-        e.preventDefault();
-        this.game.input.boost = false;
-      });
-    }
   }
 
   update(stats, trafficManager, playerPos, mapData) {

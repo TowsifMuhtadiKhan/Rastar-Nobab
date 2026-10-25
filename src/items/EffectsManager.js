@@ -161,8 +161,9 @@ export class EffectsManager {
     el.innerText = text;
     el.style.color = color;
     el.style.fontSize = size;
-    el.style.left = `${window.innerWidth / 2 + (Math.random() * 200 - 100)}px`;
-    el.style.top = `${window.innerHeight * 0.45 + (Math.random() * 100 - 50)}px`;
+    el.style.left = '50%';
+    el.style.top = `${window.innerHeight * 0.42 + (Math.random() * 40 - 20)}px`;
+    el.style.transform = 'translate(-50%, 0)';
 
     this.uiContainer.appendChild(el);
 

@@ -852,13 +852,16 @@ export class RickshawTesla {
   }
 
   update(delta, input, activeChourastas = []) {
-    const currentMax = input.boost ? this.boostMaxSpeed : this.maxSpeed;
-
     const cruiseTarget = this.autoCruiseEnabled ? 30 : 0;
-    if (input.forward) {
+    if (input.boost) {
+      // TURBO NITRO OVERDRIVE: Rocket boost propulsion up to boostMaxSpeed!
+      this.speed += this.acceleration * 2.4 * delta;
+      if (this.speed > this.boostMaxSpeed) this.speed = this.boostMaxSpeed;
+      this.battery = Math.max(0, this.battery - 0.08);
+    } else if (input.forward) {
       this.speed += this.acceleration * delta;
-      if (this.speed > currentMax) this.speed = currentMax;
-      this.battery = Math.max(0, this.battery - (input.boost ? 0.08 : 0.02));
+      if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
+      this.battery = Math.max(0, this.battery - 0.02);
     } else if (input.backward) {
       this.speed -= this.braking * delta;
       if (this.speed < -16) this.speed = -16;
@@ -866,8 +869,8 @@ export class RickshawTesla {
       if (this.autoCruiseEnabled) {
         if (this.speed < cruiseTarget) {
           this.speed = Math.min(cruiseTarget, this.speed + this.acceleration * 0.8 * delta);
-        } else if (this.speed > currentMax) {
-          this.speed = Math.max(currentMax, this.speed - this.friction * delta);
+        } else if (this.speed > this.maxSpeed) {
+          this.speed = Math.max(this.maxSpeed, this.speed - this.friction * 2.2 * delta);
         }
       } else {
         if (this.speed > 0) {
@@ -876,7 +879,7 @@ export class RickshawTesla {
           this.speed = Math.min(0, this.speed + this.friction * delta);
         }
       }
-      this.battery = Math.max(0, this.battery - (input.boost ? 0.08 : 0.015));
+      this.battery = Math.max(0, this.battery - 0.015);
     }
 
     // Steering: Left turns to negative X, Right turns to positive X

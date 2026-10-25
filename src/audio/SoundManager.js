@@ -116,7 +116,7 @@ export class SoundManager {
       if (this.rawKiRagKorlaData && !this.kiRagKorlaBuffer) {
         this.decodeKiRagKorla();
       }
-      if (this.rawAutoHornData && !this.autoHornBuffer) {
+      if (this.rawPepPepData && !this.pepPepBuffer) {
         this.decodeAutoHorn();
       }
     } catch (e) {
@@ -127,10 +127,18 @@ export class SoundManager {
   ensureContext() {
     if (!this.ctx) this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
+      // Hardware audio unlock buffer for mobile iOS / Android webkit
+      try {
+        const dummy = this.ctx.createBuffer(1, 1, 22050);
+        const src = this.ctx.createBufferSource();
+        src.buffer = dummy;
+        src.connect(this.ctx.destination);
+        src.start(0);
+      } catch (e) {}
     }
-    if (!this.autoHornBuffer && !this.isLoadingHorn) {
-      if (this.rawAutoHornData) {
+    if (!this.pepPepBuffer && !this.isLoadingHorn) {
+      if (this.rawPepPepData) {
         this.decodeAutoHorn();
       } else {
         this.preloadAutoHorn();
@@ -222,30 +230,40 @@ export class SoundManager {
     this.ensureContext();
     if (this.isMuted) return;
 
-    // 1. Primary: Instant, zero-latency WebAudio synthetic "Pep-Pep!" double honk
-    if (this.ctx && this.masterGain) {
+    // 1. Studio Audio Buffer Source (Highest quality & authentic real recording)
+    if (this.ctx && this.pepPepBuffer) {
       try {
-        const now = this.ctx.currentTime;
-        const volume = Math.min(1.0, this.volume * 1.6);
-
-        // Burst 1: First "PEP!" (0.00s -> 0.10s)
-        this.triggerSingleHonkBurst(now, 0.10, 435, 545, volume);
-
-        // Short Pause: (50ms gap between honks)
-
-        // Burst 2: Second "PEP!" (0.15s -> 0.28s)
-        this.triggerSingleHonkBurst(now + 0.15, 0.13, 442, 554, volume);
-        return;
-      } catch (err) {}
+        const src = this.ctx.createBufferSource();
+        src.buffer = this.pepPepBuffer;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(Math.min(1.0, this.volume * 2.2), this.ctx.currentTime);
+        src.connect(gain);
+        gain.connect(this.masterGain || this.ctx.destination);
+        src.start(0);
+      } catch (e) {}
     }
 
-    // 2. Preloaded studio audio fallback
+    // 2. Direct HTML5 Audio playback (guaranteed fallback on mobile phone speakers)
     if (this.pepPepAudio) {
       try {
         this.pepPepAudio.currentTime = 0;
-        this.pepPepAudio.volume = Math.min(1.0, this.volume * 1.6);
+        this.pepPepAudio.volume = Math.min(1.0, this.volume * 2.0);
         this.pepPepAudio.play().catch(() => {});
       } catch (e) {}
+    }
+
+    // 3. Piercing 12V Electric Dual-Disc Synthetic Horn (loud, crisp, high-frequency for phone speakers)
+    if (this.ctx && this.masterGain) {
+      try {
+        const now = this.ctx.currentTime;
+        const vol = Math.min(1.0, this.volume * 1.8);
+
+        // Burst 1: First "PEP!" (0.00s -> 0.09s)
+        this.triggerSingleHonkBurst(now, 0.09, 580, 720, vol);
+
+        // Burst 2: Second "PEP!" (0.13s -> 0.23s)
+        this.triggerSingleHonkBurst(now + 0.13, 0.10, 595, 735, vol);
+      } catch (err) {}
     }
   }
 
@@ -267,15 +285,16 @@ export class SoundManager {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(freq, startTime);
 
-      // Bandpass filter to sculpt punchy metallic horn resonance (~1450 Hz)
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(1450, startTime);
-      filter.Q.setValueAtTime(1.8, startTime);
+      // Peaking filter to boost piercing metallic horn resonance (~1600 Hz)
+      filter.type = 'peaking';
+      filter.frequency.setValueAtTime(1600, startTime);
+      filter.gain.setValueAtTime(6.0, startTime);
+      filter.Q.setValueAtTime(1.2, startTime);
 
       // Sharp, punchy ADSR envelope for instant "PEP" impact
       gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.linearRampToValueAtTime(0.32 * volume, startTime + 0.008);
-      gain.gain.setValueAtTime(0.32 * volume, startTime + duration - 0.025);
+      gain.gain.linearRampToValueAtTime(0.55 * volume, startTime + 0.006);
+      gain.gain.setValueAtTime(0.55 * volume, startTime + duration - 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
       osc.connect(filter);
@@ -287,19 +306,21 @@ export class SoundManager {
     });
 
     // High harmonic metallic disc click/bite
-    const biteOsc = this.ctx.createOscillator();
-    const biteGain = this.ctx.createGain();
-    biteOsc.type = 'square';
-    biteOsc.frequency.setValueAtTime(1880, startTime);
+    try {
+      const biteOsc = this.ctx.createOscillator();
+      const biteGain = this.ctx.createGain();
+      biteOsc.type = 'square';
+      biteOsc.frequency.setValueAtTime(1920, startTime);
 
-    biteGain.gain.setValueAtTime(0.06 * volume, startTime);
-    biteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.04);
+      biteGain.gain.setValueAtTime(0.18 * volume, startTime);
+      biteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.045);
 
-    biteOsc.connect(biteGain);
-    biteGain.connect(this.masterGain);
+      biteOsc.connect(biteGain);
+      biteGain.connect(this.masterGain);
 
-    biteOsc.start(startTime);
-    biteOsc.stop(startTime + 0.05);
+      biteOsc.start(startTime);
+      biteOsc.stop(startTime + 0.05);
+    } catch (e) {}
   }
 
   // Charming, sweet Rickshaw Bell chime ("টুং-টুং")

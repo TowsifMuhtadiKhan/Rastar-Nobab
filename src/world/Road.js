@@ -26,17 +26,22 @@ export class Road {
 
     this.roadTex = TextureFactory.createDhakaRoadTexture();
     this.roadTex.repeat.set(1, 4);
+    this.roadTex.anisotropy = 8;
 
     this.crossroadTex = TextureFactory.createCrossroadTexture();
     this.crossroadTex.repeat.set(3, 1);
+    this.crossroadTex.anisotropy = 8;
 
     this.curbTex = TextureFactory.createCurbTexture();
     this.curbTex.repeat.set(24, 1);
+    this.curbTex.anisotropy = 4;
 
     this.roundaboutCurbTex = TextureFactory.createRoundaboutCurbTexture();
+    this.roundaboutCurbTex.anisotropy = 4;
 
     this.sidewalkTex = TextureFactory.createSidewalkTexture();
     this.sidewalkTex.repeat.set(2, 22);
+    this.sidewalkTex.anisotropy = 4;
 
     this.initRoad();
   }

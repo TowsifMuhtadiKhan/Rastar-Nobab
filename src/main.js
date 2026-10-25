@@ -74,8 +74,9 @@ class Game {
       powerPreference: 'high-performance',
       preserveDrawingBuffer: true // Required for capturing crash screenshot for newspaper!
     });
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0); // True Retina HD crispness on mobile
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25)); // Smooth 60 FPS
+    this.renderer.setPixelRatio(dpr);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap; // Ultra-fast shadow mapping
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -557,10 +558,25 @@ class Game {
       }
     });
 
+    // Global mobile audio context unlocker on first touch gesture
+    const unlockAudio = () => {
+      if (this.sound) this.sound.ensureContext();
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('pointerdown', unlockAudio);
+    };
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+
     this.hookTouchBtn('btn-left', (active) => { this.input.left = active; });
     this.hookTouchBtn('btn-right', (active) => { this.input.right = active; });
     this.hookTouchBtn('btn-brake', (active) => { this.input.backward = active; });
-    this.hookTouchBtn('btn-boost', (active) => { this.input.boost = active; });
+    this.hookTouchBtn('btn-boost', (active) => {
+      this.input.boost = active;
+      if (active) {
+        this.sound.playTurboSound();
+        this.effects.showFloatingText('⚡ টার্বো অ্যাক্টিভ!', '#00f0ff', '24px');
+      }
+    });
     this.hookTouchBtn('btn-horn', (active) => { this.triggerHorn(active); });
 
     // On-Screen Zoom Controls & Pinch-To-Zoom System
@@ -631,18 +647,46 @@ class Game {
   hookTouchBtn(id, callback) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      this.sound.ensureContext();
-      callback(true);
-    });
-    el.addEventListener('pointerup', (e) => {
-      e.preventDefault();
-      callback(false);
-    });
-    el.addEventListener('pointerleave', () => {
-      callback(false);
-    });
+
+    let isPressed = false;
+
+    const onDown = (e) => {
+      if (e) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        if (e.pointerId && el.setPointerCapture) {
+          try { el.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+      }
+      if (!isPressed) {
+        isPressed = true;
+        if (this.sound) this.sound.ensureContext();
+        callback(true);
+      }
+    };
+
+    const onUp = (e) => {
+      if (e) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        if (e.pointerId && el.releasePointerCapture) {
+          try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+      }
+      if (isPressed) {
+        isPressed = false;
+        callback(false);
+      }
+    };
+
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onUp);
+
+    // Mobile webkit touch events fallback
+    el.addEventListener('touchstart', onDown, { passive: false });
+    el.addEventListener('touchend', onUp, { passive: false });
+    el.addEventListener('touchcancel', onUp, { passive: false });
   }
 
   triggerHorn(active) {
@@ -657,9 +701,10 @@ class Game {
       this.decibels = Math.min(185, this.decibels + 40);
       if (this.decibels > this.maxDecibels) this.maxDecibels = this.decibels;
 
-      const affected = this.traffic.triggerHornShockwave(pos.x, pos.z, 32);
-      if (affected.length > 0) {
-        this.effects.showFloatingText('📢 প্যাঁক প্যাঁক!', '#facc15', '24px');
+      this.effects.showFloatingText('📢 প্যাঁক প্যাঁক!', '#facc15', '24px');
+
+      if (this.traffic) {
+        this.traffic.triggerHornShockwave(pos.x, pos.z, 32);
       }
 
       if (this.city && typeof this.city.reactToHorn === 'function') {
@@ -1304,6 +1349,7 @@ class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
   }
 
   animate() {

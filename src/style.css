@@ -833,8 +833,10 @@ body, html {
   justify-content: center;
   cursor: pointer;
   transition: transform 0.08s, box-shadow 0.08s;
-  touch-action: manipulation;
-  user-select: none;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
 }
 
 .paddle-btn:active {
@@ -858,8 +860,10 @@ body, html {
   cursor: pointer;
   transition: transform 0.08s, box-shadow 0.08s;
   animation: horn-throb 1.8s infinite alternate;
-  touch-action: manipulation;
-  user-select: none;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
   padding: 4px 12px;
 }
 
@@ -908,8 +912,10 @@ body, html {
   justify-content: center;
   cursor: pointer;
   transition: transform 0.08s, box-shadow 0.08s;
-  touch-action: manipulation;
-  user-select: none;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
   line-height: 1;
 }
 
@@ -935,11 +941,24 @@ body, html {
   color: #fde047;
 }
 
+.boost-btn:active,
+.boost-btn.active {
+  background: linear-gradient(145deg, #0ea5e9, #0284c7);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.9), inset 0 0 12px #38bdf8;
+  border-color: #facc15;
+}
+
 .brake-btn {
   background: linear-gradient(145deg, #dc2626, #991b1b);
   border: 2px solid #f87171;
   box-shadow: 0 4px 15px rgba(220, 38, 38, 0.5);
   color: #ffffff;
+}
+
+.brake-btn:active,
+.brake-btn.active {
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.9), inset 0 0 12px #fca5a5;
 }
 
 /* ========================================================================= */
